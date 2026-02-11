@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Test Case Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#f0f4ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' },
+                        success: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a' },
+                        warning: { 50: '#fffbeb', 100: '#fef3c7', 500: '#f59e0b', 600: '#d97706' },
+                        danger: { 50: '#fef2f2', 100: '#fee2e2', 500: '#ef4444', 600: '#dc2626' }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'slide-down': 'slideDown 0.3s ease-out',
+                        'pulse': 'pulse 1.5s infinite',
+                        'spin-slow': 'spin 2s linear infinite',
+                        'expand': 'expand 0.3s ease-out',
+                        'bounce-soft': 'bounceSoft 0.5s ease-out'
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        slideDown: { '0%': { opacity: '0', transform: 'translateY(-10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        expand: { '0%': { opacity: '0', maxHeight: '0' }, '100%': { opacity: '1', maxHeight: '500px' } },
+                        bounceSoft: { '0%': { transform: 'scale(0.95)' }, '50%': { transform: 'scale(1.02)' }, '100%': { transform: 'scale(1)' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+        .dark ::-webkit-scrollbar-track { background: #374151; }
+        .dark ::-webkit-scrollbar-thumb { background: #6b7280; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        
+        * { transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s; }
+        
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        .dark .skeleton { background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%); background-size: 200% 100%; }
+        
+        .toast-enter { transform: translateX(100%); opacity: 0; }
+        .toast-enter-active { transform: translateX(0); opacity: 1; transition: all 0.3s ease-out; }
+        .toast-exit { transform: translateX(0); opacity: 1; }
+        .toast-exit-active { transform: translateX(100%); opacity: 0; transition: all 0.3s ease-in; }
+        
+        .page { display: none; }
+        .page.active { display: block; }
+        
+        .nav-item { position: relative; }
+        .nav-item.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: currentColor; }
+        
+        .card-select { cursor: pointer; }
+        .card-select.selected { ring: 2px; ring-color: #6366f1; }
+        
+        .progress-ring { transition: stroke-dashoffset 0.5s ease; }
+        
+        .filter-btn.active { background: #6366f1; color: white; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <!-- Navigation Header -->
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800 dark:text-white">AI Test Case Generator</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Automated QA Suite</p>
+                </div>
+            </div>
+            
+            <nav class="flex items-center gap-1">
+                <button onclick="showPage('home')" class="nav-item px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-page="home">Home</button>
+                <button onclick="showPage('requirements')" class="nav-item px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-page="requirements">Requirements</button>
+                <button onclick="showPage('artifacts')" class="nav-item px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-page="artifacts">Artifacts</button>
+                <button onclick="showPage('rtm')" class="nav-item px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-page="rtm">RTM</button>
+            </nav>
+            
+            <div class="flex items-center gap-2">
+                <button id="themeToggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <svg id="moonIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6 max-w-6xl">
+        
+        <!-- HOME PAGE -->
+        <div id="page-home" class="page active">
+            <div class="text-center py-16">
+                <div class="w-24 h-24 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
+                    <svg class="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                </div>
+                <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-4">AI-Powered Test Case Generator</h1>
+                <p class="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
+                    Transform requirements into comprehensive, traceable test cases with AI-driven analysis, normalization, and test strategy generation.
+                </p>
+                <div class="flex justify-center gap-4">
+                    <button onclick="showPage('requirements')" class="px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all font-medium shadow-lg hover:shadow-xl flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Start New Project
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Features Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Smart Requirements</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">AI parses and normalizes requirements into structured format with ambiguity detection.</p>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Comprehensive Artifacts</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">Generate detailed test plans, strategies, scenarios, and test cases automatically.</p>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Full Traceability</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">Complete RTM with linked requirements, test cases, and coverage analysis.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- REQUIREMENTS PAGE -->
+        <div id="page-requirements" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Requirements Gathering</h2>
+                    <p class="text-gray-500 dark:text-gray-400">Enter requirements, review AI analysis, and select for test generation</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="clearRequirements()" class="px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+                        Clear All
+                    </button>
+                    <button onclick="processRequirements()" class="px-6 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all font-medium shadow-md flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Process Requirements
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Input Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Raw Requirements Input</h3>
+                    <div class="relative">
+                        <button onclick="toggleTemplateDropdown()" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            Load Template
+                        </button>
+                        <div id="templateDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                            <div class="p-2">
+                                <button onclick="loadTemplate('flash_sale')" class="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center gap-2">
+                                    <span>⚡</span> Flash Sale E-Commerce
+                                </button>
+                                <button onclick="loadTemplate('parking')" class="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center gap-2">
+                                    <span>🅿️</span> Smart Parking System
+                                </button>
+                                <button onclick="loadTemplate('food_delivery')" class="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center gap-2">
+                                    <span>🍔</span> Food Delivery Platform
+                                </button>
+                                <button onclick="loadTemplate('wallet')" class="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center gap-2">
+                                    <span>💰</span> Digital Wallet
+                                </button>
+                                <button onclick="loadTemplate('telemedicine')" class="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center gap-2">
+                                    <span>🩺</span> Telemedicine Platform
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <textarea id="requirementsInput" 
+                    class="w-full h-48 p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-primary-500 resize-y text-sm"
+                    placeholder="Enter your software requirements here...&#10;&#10;Guidelines:&#10;• Use clear, specific language&#10;• Include conditions and expected outcomes&#10;• Specify actors and actions&#10;• Example: User shall login with valid credentials within 5 seconds"></textarea>
+                <div class="flex justify-between items-center mt-3">
+                    <span class="text-xs text-gray-500 dark:text-gray-400"><span id="charCount">0</span> characters</span>
+                </div>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="requirementsLoading" class="hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+                    <div class="flex items-center justify-center">
+                        <div class="text-center">
+                            <svg class="animate-spin-slow w-14 h-14 text-primary-500 mx-auto mb-4" fill="none" viewBox="0 0 50 50">
+                                <circle class="opacity-25" cx="25" cy="25" r="20" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M25 5A20 20 0 0125 45z"></path>
+                            </svg>
+                            <p class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Analyzing Requirements...</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Parsing, normalizing, and detecting ambiguities</p>
+                            <div class="w-64 h-2 bg-gray-200 dark:bg-gray-600 rounded-full mt-4 overflow-hidden mx-auto">
+                                <div id="reqProgressBar" class="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-pulse" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Analysis Results -->
+            <div id="aiAnalysisSection" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">AI Analysis Results</h3>
+                    <div class="flex items-center gap-3">
+                        <button onclick="selectAllRequirements()" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700">Select All</button>
+                        <button onclick="generateFromSelected()" class="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all font-medium shadow-md flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Generate Artifacts
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="requirementsList" class="space-y-4 mb-6"></div>
+            </div>
+        </div>
+
+        <!-- ARTIFACTS PAGE -->
+        <div id="page-artifacts" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Test Artifacts</h2>
+                    <p class="text-gray-500 dark:text-gray-400">Comprehensive test documentation and test cases</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="exportArtifacts()" class="px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Export All
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filter Controls -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6 flex flex-wrap gap-2">
+                <span class="text-sm font-medium text-gray-600 dark:text-gray-400 py-2">Filters:</span>
+                <button onclick="filterTestCases('all')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="all">All</button>
+                <button onclick="filterTestCases('P0')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="P0">P0</button>
+                <button onclick="filterTestCases('P1')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="P1">P1</button>
+                <button onclick="filterTestCases('P2')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="P2">P2</button>
+                <button onclick="filterTestCases('Positive')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Positive">Positive</button>
+                <button onclick="filterTestCases('Negative')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Negative">Negative</button>
+                <button onclick="filterTestCases('Boundary')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Boundary">Boundary</button>
+                <button onclick="filterTestCases('Edge')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Edge">Edge</button>
+                <button onclick="filterTestCases('Manual')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Manual">Manual</button>
+                <button onclick="filterTestCases('Automation')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Automation">Automation</button>
+            </div>
+            
+            <!-- Tabbed Artifacts -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700">
+                    <button onclick="switchArtifactTab('testplan')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600" data-tab="testplan">Test Plan</button>
+                    <button onclick="switchArtifactTab('strategy')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-400" data-tab="strategy">Test Strategy</button>
+                    <button onclick="switchArtifactTab('scenarios')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-400" data-tab="scenarios">Scenarios</button>
+                    <button onclick="switchArtifactTab('testcases')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-400" data-tab="testcases">Test Cases</button>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Test Plan Tab -->
+                    <div id="artifact-testplan" class="artifact-content">
+                        <div id="testPlanContent" class="prose dark:prose-invert max-w-none"></div>
+                    </div>
+                    
+                    <!-- Test Strategy Tab -->
+                    <div id="artifact-strategy" class="artifact-content hidden">
+                        <div id="testStrategyContent" class="prose dark:prose-invert max-w-none"></div>
+                    </div>
+                    
+                    <!-- Scenarios Tab -->
+                    <div id="artifact-scenarios" class="artifact-content hidden">
+                        <div id="testScenariosContent" class="space-y-4"></div>
+                    </div>
+                    
+                    <!-- Test Cases Tab -->
+                    <div id="artifact-testcases" class="artifact-content">
+                        <div id="testCasesList" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RTM PAGE -->
+        <div id="page-rtm" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Requirements Traceability Matrix</h2>
+                    <p class="text-gray-500 dark:text-gray-400">Complete traceability between requirements and test cases</p>
+                </div>
+            </div>
+            
+            <!-- RTM Stats -->
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                    <div class="text-2xl font-bold text-primary-600" id="rtmReqCount">0</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Requirements</div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                    <div class="text-2xl font-bold text-green-600" id="rtmTcCount">0</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Test Cases</div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                    <div class="text-2xl font-bold text-emerald-600" id="rtmCoverage">0%</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Coverage</div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                    <div class="text-2xl font-bold text-amber-500" id="rtmAmbig">0</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Ambiguous</div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="grid grid-cols-2 gap-6 mb-6">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Test Type Distribution</h3>
+                    <div id="rtmTypeChart" class="space-y-3"></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Priority Distribution</h3>
+                    <div id="rtmPriorityChart" class="space-y-3"></div>
+                </div>
+            </div>
+            
+            <!-- RTM Table -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Traceability Matrix</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-700/50">
+                            <tr>
+                                <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Req ID</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Source Text</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Classification</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Priority</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Test Cases</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Coverage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rtmTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global State
+        let appState = {
+            rawRequirements: '',
+            analyzedRequirements: [],
+            selectedRequirementIds: new Set(),
+            generatedArtifacts: null,
+            currentFilter: 'all'
+        };
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+        const html = document.documentElement;
+        
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.classList.add(savedTheme);
+        updateThemeIcon(savedTheme);
+        
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.classList.remove(currentTheme);
+            html.classList.add(newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+        
+        function updateThemeIcon(theme) {
+            if (theme === 'dark') {
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+
+        // Page Navigation
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active', 'text-primary-600', 'dark:text-primary-400'));
+            
+            document.getElementById(`page-${pageName}`).classList.add('active');
+            document.querySelector(`[data-page="${pageName}"]`).classList.add('active', 'text-primary-600', 'dark:text-primary-400');
+        }
+
+        // Template Dropdown
+        function toggleTemplateDropdown() {
+            document.getElementById('templateDropdown').classList.toggle('hidden');
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#templateDropdown') && !e.target.closest('[onclick="toggleTemplateDropdown()"]')) {
+                document.getElementById('templateDropdown').classList.add('hidden');
+            }
+        });
+
+        const templates = {
+            flash_sale: 'The system shall display product details including price, stock quantity, and discount percentage. During flash sale events, limited stock shall be allocated on a first-come-first-serve basis. The system shall prevent overselling of stock during high concurrency. When a user adds a product to cart, the product shall be reserved for ten minutes. If checkout is not completed within ten minutes, the reserved stock shall be released automatically. The system shall process payments through integrated payment gateways. Payment response shall be received within five seconds. If payment is successful, order confirmation shall be generated immediately. If payment fails, stock shall be restored automatically. The system shall send confirmation email within one minute of successful order placement. The platform shall handle at least 5,000 transactions per second during flash sales. The system shall prevent duplicate order generation due to repeated submission or page refresh. All payment data shall comply with PCI standards. System availability during flash sale shall not fall below 99.95 percent.',
+            parking: 'The system shall detect available parking slots using IoT sensors installed at each slot. Sensor data shall synchronize with the central server every 30 seconds. The system shall display real-time slot availability to users within two seconds of refresh. Users shall reserve a parking slot for a selected future time window. Reserved slots shall not be visible as available to other users. If a user does not enter the parking lot within fifteen minutes of reservation start time, the system shall release the slot automatically. The system shall start the parking session when vehicle entry is detected through RFID or license plate recognition. The system shall calculate parking fees based on duration and configured pricing rules. Overstay charges shall apply automatically after grace period expires. Users shall complete payment before exiting the parking lot. If payment fails, the system shall mark the session as pending payment and restrict future reservations. Operators shall configure pricing rules, operating hours, and total slot capacity through an administrative dashboard. The system shall generate daily occupancy reports and revenue summaries. The system shall handle 100,000 concurrent user sessions. System uptime shall not fall below 99.9 percent. If sensor data becomes unavailable, operators shall manually override slot availability.',
+            food_delivery: 'The system shall allow customers to search restaurants based on location and cuisine type. The system shall display estimated delivery time and delivery charges before order confirmation. Customers shall add items to cart and modify item quantity before checkout. The system shall validate item availability before order placement. If an item becomes unavailable during checkout, the system shall notify the user and prevent order confirmation. Customers shall apply discount coupons during checkout. The system shall validate coupon eligibility based on expiration date and minimum order value. The system shall process payments using credit card, debit card, UPI, and wallet. Payment confirmation shall occur within five seconds. If payment is deducted but order creation fails, the system shall automatically initiate refund within ten minutes. The system shall assign delivery partners based on proximity and availability. Delivery partner location shall update every five seconds. Customers shall track order status in real time. The system shall allow cancellation before order preparation starts. The system shall support up to 150,000 concurrent users during peak hours. System availability shall be at least 99.9 percent uptime monthly. All personal and payment information shall be encrypted. The system shall prevent duplicate order creation if the user refreshes the confirmation page repeatedly.',
+            wallet: 'The system shall allow users to register using a mobile number and email address. The system shall verify the mobile number using a one-time password before account activation. Users shall create a secure login PIN during registration. The system shall allow users to add money to their wallet using debit card, credit card, or UPI. The wallet balance shall update immediately after successful payment confirmation. If payment fails after deduction from the bank, the system shall automatically reconcile the transaction within five minutes. Users shall transfer money to another registered user using mobile number or wallet ID. The system shall prevent transfers if the sender\'s wallet balance is insufficient. The system shall block transfers exceeding ₹1,00,000 per day. All wallet transactions shall be recorded in transaction history. Transaction history shall display date, time, transaction ID, amount, and status. Users shall receive a push notification after every successful or failed transaction. The system shall support up to 75,000 concurrent active users. Transaction processing time shall not exceed two seconds under normal load. All financial data shall be encrypted at rest and in transit. The system shall comply with PCI-DSS standards. If the notification service fails, the transaction shall still complete successfully and the notification shall retry asynchronously.',
+            telemedicine: 'The system shall allow patients to create an account using email and password. Email verification shall be mandatory before booking appointments. Patients shall book appointments based on doctor availability schedule. The system shall prevent double booking of time slots. Patients shall pay consultation fees before appointment confirmation. If payment fails after deduction, refund shall be processed automatically within fifteen minutes. The system shall enable secure video consultation between patient and doctor. Video latency shall not exceed 300 milliseconds under stable network conditions. Doctors shall create digital prescriptions including diagnosis, medication, dosage, and duration. Patients shall view prescription history but shall not edit prescription details. All medical records shall be encrypted and stored securely. The system shall comply with healthcare data privacy regulations. The platform shall support 10,000 concurrent consultation sessions. If the video connection drops, the system shall attempt automatic reconnection within ten seconds. If reconnection fails, the session shall be marked incomplete and partial refund shall be evaluated.'
+        };
+
+        function loadTemplate(key) {
+            document.getElementById('requirementsInput').value = templates[key];
+            updateCharCount();
+            document.getElementById('templateDropdown').classList.add('hidden');
+            showToast('Template loaded', 'success');
+        }
+
+        // Character Count
+        const requirementsInput = document.getElementById('requirementsInput');
+        const charCount = document.getElementById('charCount');
+        
+        requirementsInput.addEventListener('input', updateCharCount);
+        
+        function updateCharCount() {
+            charCount.textContent = requirementsInput.value.length;
+            appState.rawRequirements = requirementsInput.value;
+        }
+
+        // Toast Notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500'
+            };
+            
+            toast.className = `toast-enter px-4 py-3 rounded-lg shadow-lg text-white flex items-center gap-2 ${colors[type]}`;
+            toast.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> ${message}`;
+            
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-enter-active');
+            });
+            
+            setTimeout(() => {
+                toast.classList.remove('toast-enter-active');
+                toast.classList.add('toast-exit-active');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // API Configuration
+        const API_URL = 'http://localhost:9000';
+
+        // Process Requirements
+        async function processRequirements() {
+            const text = requirementsInput.value.trim();
+            if (!text) {
+                showToast('Please enter requirements', 'warning');
+                return;
+            }
+
+            document.getElementById('requirementsInput').classList.add('hidden');
+            document.getElementById('requirementsLoading').classList.remove('hidden');
+            
+            const progressBar = document.getElementById('reqProgressBar');
+            progressBar.style.width = '0%';
+            
+            try {
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress = Math.min(progress + Math.random() * 15, 90);
+                    progressBar.style.width = progress + '%';
+                }, 200);
+
+                const response = await fetch(`${API_URL}/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Processing failed');
+                }
+
+                const data = await response.json();
+                
+                // Store analyzed requirements
+                appState.analyzedRequirements = data.normalized_requirements || [];
+                appState.selectedRequirementIds = new Set(appState.analyzedRequirements.map(r => r.requirement_id));
+                
+                // Render requirements list
+                renderRequirements(data.normalized_requirements || []);
+                
+                document.getElementById('requirementsLoading').classList.add('hidden');
+                document.getElementById('aiAnalysisSection').classList.remove('hidden');
+                
+                showToast(`Analyzed ${data.normalized_requirements?.length || 0} requirements`, 'success');
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+                console.error(error);
+                document.getElementById('requirementsLoading').classList.add('hidden');
+                document.getElementById('requirementsInput').classList.remove('hidden');
+            }
+        }
+
+        function renderRequirements(requirements) {
+            const container = document.getElementById('requirementsList');
+            
+            const html = requirements.map((req, idx) => {
+                const isSelected = appState.selectedRequirementIds.has(req.requirement_id);
+                const priorityColors = {
+                    'High': 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+                    'Medium': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
+                    'Low': 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                };
+                const badges = req.classification?.map(c => 
+                    `<span class="px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300">${c}</span>`
+                ).join('') || '';
+                
+                return `
+                    <div class="card-select bg-white dark:bg-gray-800 rounded-xl border-2 ${isSelected ? 'border-primary-500 ring-2 ring-primary-200 dark:ring-primary-800' : 'border-gray-200 dark:border-gray-600'} p-4 transition-all cursor-pointer" onclick="toggleRequirement('${req.requirement_id}')" data-req-id="${req.requirement_id}">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <input type="checkbox" ${isSelected ? 'checked' : ''} class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" onclick="event.stopPropagation(); toggleRequirement('${req.requirement_id}')">
+                                    <span class="px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded text-xs font-medium">${req.requirement_id}</span>
+                                    ${badges}
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium ${priorityColors[req.priority_hint] || 'bg-gray-200 text-gray-700'}">${req.priority_hint}</span>
+                                    ${req.ambiguity?.is_ambiguous ? '<span class="px-2 py-1 bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 rounded text-xs font-medium">⚠️ Ambiguous</span>' : ''}
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">${req.source_text}</p>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                    <div><span class="font-medium">Actor:</span> ${req.normalized?.actor || 'N/A'}</div>
+                                    <div><span class="font-medium">Action:</span> ${req.normalized?.action || 'N/A'}</div>
+                                    <div><span class="font-medium">Conditions:</span> ${req.normalized?.conditions?.length || 0}</div>
+                                    <div><span class="font-medium">Confidence:</span> ${(req.provenance?.confidence * 100 || 100).toFixed(0)}%</div>
+                                </div>
+                                ${req.ambiguity?.clarifying_questions?.length > 0 ? `
+                                    <div class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                        <div class="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">❓ Clarifying Questions</div>
+                                        ${req.ambiguity.clarifying_questions.map(q => `<div class="text-xs text-amber-700 dark:text-amber-300 mb-1">• ${q}</div>`).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="ml-4">
+                                ${isSelected ? 
+                                    '<svg class="w-6 h-6 text-primary-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>' : 
+                                    '<svg class="w-6 h-6 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd"/></svg>'
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+
+        function toggleRequirement(reqId) {
+            if (appState.selectedRequirementIds.has(reqId)) {
+                appState.selectedRequirementIds.delete(reqId);
+            } else {
+                appState.selectedRequirementIds.add(reqId);
+            }
+            renderRequirements(appState.analyzedRequirements);
+        }
+
+        function selectAllRequirements() {
+            appState.analyzedRequirements.forEach(r => appState.selectedRequirementIds.add(r.requirement_id));
+            renderRequirements(appState.analyzedRequirements);
+        }
+
+        function clearRequirements() {
+            requirementsInput.value = '';
+            updateCharCount();
+            appState.analyzedRequirements = [];
+            appState.selectedRequirementIds.clear();
+            document.getElementById('requirementsInput').classList.remove('hidden');
+            document.getElementById('requirementsLoading').classList.add('hidden');
+            document.getElementById('aiAnalysisSection').classList.add('hidden');
+            showToast('Input cleared', 'info');
+        }
+
+        // Generate Artifacts from Selected Requirements
+        async function generateFromSelected() {
+            if (appState.selectedRequirementIds.size === 0) {
+                showToast('Please select at least one requirement', 'warning');
+                return;
+            }
+
+            // Filter artifacts to selected requirements
+            const selectedReqs = appState.analyzedRequirements.filter(r => appState.selectedRequirementIds.has(r.requirement_id));
+            
+            // Generate artifacts object
+            const artifacts = {
+                normalized_requirements: selectedReqs,
+                test_cases: appState.generatedArtifacts?.test_cases || [],
+                test_plan: appState.generatedArtifacts?.test_plan || null
+            };
+            
+            // If no test cases yet, generate them
+            if (!appState.generatedArtifacts) {
+                try {
+                    const response = await fetch(`${API_URL}/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: appState.rawRequirements })
+                    });
+                    
+                    if (!response.ok) throw new Error('Generation failed');
+                    
+                    const data = await response.json();
+                    appState.generatedArtifacts = data;
+                    artifacts.test_cases = data.test_cases;
+                    artifacts.test_plan = data.test_plan;
+                } catch (error) {
+                    showToast('Error generating artifacts: ' + error.message, 'error');
+                    return;
+                }
+            }
+
+            // Render artifacts
+            renderTestPlan(appState.generatedArtifacts.test_plan);
+            renderTestStrategy(appState.generatedArtifacts.test_plan?.test_strategy);
+            renderTestScenarios(appState.generatedArtifacts.test_plan?.test_scenarios || [], appState.generatedArtifacts.normalized_requirements);
+            renderTestCases(appState.generatedArtifacts.test_cases || []);
+            renderRTM(appState.generatedArtifacts);
+            
+            showPage('artifacts');
+            showToast('Artifacts generated successfully!', 'success');
+        }
+
+        // Artifact Tabs
+        function switchArtifactTab(tabName) {
+            document.querySelectorAll('.artifact-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.artifact-tab').forEach(b => {
+                b.classList.remove('border-primary-500', 'text-primary-600');
+                b.classList.add('border-transparent', 'text-gray-600', 'dark:text-gray-400');
+            });
+            
+            document.getElementById(`artifact-${tabName}`).classList.remove('hidden');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('border-primary-500', 'text-primary-600');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.remove('border-transparent', 'text-gray-600', 'dark:text-gray-400');
+        }
+
+        // Filter Test Cases
+        function filterTestCases(filter) {
+            appState.currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                    btn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                } else {
+                    btn.classList.remove('active');
+                    btn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                }
+            });
+            renderTestCases(appState.generatedArtifacts?.test_cases || []);
+        }
+
+        // Render Test Plan
+        function renderTestPlan(testPlan) {
+            const container = document.getElementById('testPlanContent');
+            if (!testPlan) {
+                container.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No test plan available</p>';
+                return;
+            }
+
+            const html = `
+                <div class="space-y-6">
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Test Plan</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div><span class="text-sm text-gray-500">Plan ID:</span> <span class="font-medium">${testPlan.plan_id}</span></div>
+                            <div><span class="text-sm text-gray-500">Version:</span> <span class="font-medium">${testPlan.version}</span></div>
+                            <div><span class="text-sm text-gray-500">Created:</span> <span class="font-medium">${new Date().toLocaleDateString()}</span></div>
+                            <div><span class="text-sm text-gray-500">Status:</span> <span class="font-medium text-green-600">Draft</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">Objectives</h4>
+                        <p class="text-gray-600 dark:text-gray-300">${testPlan.objectives}</p>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">Scope</h4>
+                        <p class="text-gray-600 dark:text-gray-300">${testPlan.scope}</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+                            <div class="text-2xl font-bold text-blue-600">${testPlan.metrics?.total_requirements || 0}</div>
+                            <div class="text-sm text-blue-600/70">Requirements</div>
+                        </div>
+                        <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
+                            <div class="text-2xl font-bold text-green-600">${testPlan.metrics?.total_test_cases || 0}</div>
+                            <div class="text-sm text-green-600/70">Test Cases</div>
+                        </div>
+                        <div class="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4">
+                            <div class="text-2xl font-bold text-purple-600">${testPlan.metrics?.coverage_percentage || 0}%</div>
+                            <div class="text-sm text-purple-600/70">Coverage</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        // Render Test Strategy
+        function renderTestStrategy(strategy) {
+            const container = document.getElementById('testStrategyContent');
+            if (!strategy) {
+                container.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No test strategy available</p>';
+                return;
+            }
+
+            const html = `
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-r from-primary-500 to-primary-700 rounded-xl p-6 text-white">
+                        <h3 class="text-xl font-bold mb-2">Test Strategy</h3>
+                        <p class="text-primary-100">Strategic approach to validating ${strategy.scope?.toLowerCase() || 'requirements'}</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                            <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">🎯 Objectives</h4>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm">${strategy.objectives}</p>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                            <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">📐 Scope</h4>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm">${strategy.scope}</p>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                            <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">🔧 Approach</h4>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm">${strategy.approach}</p>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                            <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">⚡ Priority Focus</h4>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm">${strategy.priority_focus}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">🧪 Test Types Covered</h4>
+                        <div class="flex flex-wrap gap-2">
+                            ${(strategy.test_types_covered || []).map(type => 
+                                `<span class="px-3 py-1 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded-full text-sm">${type}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        // Render Test Scenarios
+        function renderTestScenarios(scenarios, requirements) {
+            const container = document.getElementById('testScenariosContent');
+            if (!scenarios || scenarios.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">No test scenarios available</p>';
+                return;
+            }
+
+            const html = scenarios.map((scenario, idx) => {
+                const linkedReq = requirements?.find(r => r.requirement_id === scenario.requirement_id);
+                const reqText = linkedReq?.source_text || 'Original requirement';
+                
+                return `
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 rounded text-xs font-medium">${scenario.scenario_id}</span>
+                                    <span class="px-2 py-1 ${scenario.priority === 'High' ? 'bg-red-100 text-red-700' : scenario.priority === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'} rounded text-xs font-medium">${scenario.priority}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">${scenario.description}</p>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    <span class="font-medium">Linked Req:</span> ${scenario.requirement_id}
+                                </div>
+                                <div class="mt-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-xs text-gray-600 dark:text-gray-300">
+                                    "${reqText.substring(0, 150)}${reqText.length > 150 ? '...' : ''}"
+                                </div>
+                            </div>
+                            <div class="text-right text-xs text-gray-500">
+                                ${scenario.test_cases?.length || 0} TC(s)
+                            </div>
+                        </div>
+                        ${scenario.preconditions?.length > 0 ? `
+                            <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Preconditions:</span>
+                                <span class="text-sm text-gray-600 dark:text-gray-300 ml-2">${scenario.preconditions.join(', ')}</span>
+                            </div>
+                        ` : ''}
+                        <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Test Cases:</span>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                ${(scenario.test_cases || []).map(tc => 
+                                    `<span class="px-2 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded text-xs cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900/50" onclick="highlightTestCase('${tc}')">${tc}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+
+        // Render Test Cases
+        function renderTestCases(testCases) {
+            const container = document.getElementById('testCasesList');
+            
+            let filteredCases = testCases;
+            if (appState.currentFilter !== 'all') {
+                filteredCases = testCases.filter(tc => 
+                    tc.priority === appState.currentFilter || 
+                    tc.test_type === appState.currentFilter ||
+                    (appState.currentFilter === 'Manual' && !tc.automation_feasibility?.feasible) ||
+                    (appState.currentFilter === 'Automation' && tc.automation_feasibility?.feasible)
+                );
+            }
+
+            if (!filteredCases || filteredCases.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">No test cases match the current filter</p>';
+                return;
+            }
+
+            const typeColors = {
+                'Positive': 'bg-green-500',
+                'Negative': 'bg-red-500',
+                'Edge': 'bg-purple-500',
+                'Boundary': 'bg-yellow-500',
+                'Security': 'bg-indigo-500',
+                'API': 'bg-pink-500'
+            };
+            const priorityColors = {
+                'P0': 'bg-red-500',
+                'P1': 'bg-orange-500',
+                'P2': 'bg-yellow-500',
+                'P3': 'bg-green-500'
+            };
+
+            const html = filteredCases.map(tc => `
+                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md transition-shadow" id="tc-${tc.test_case_id}">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 ${typeColors[tc.test_type] || 'bg-gray-500'} text-white rounded text-xs font-medium">${tc.test_type}</span>
+                            <span class="text-xs text-gray-500">${tc.test_case_id}</span>
+                            <span class="px-2 py-1 ${priorityColors[tc.priority] || 'bg-gray-500'} text-white rounded text-xs font-medium">${tc.priority}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${tc.automation_feasibility?.feasible ? 
+                                `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs" title="${tc.automation_feasibility?.notes}">🤖 Auto</span>` : 
+                                `<span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded text-xs">📝 Manual</span>`
+                            }
+                        </div>
+                    </div>
+                    
+                    <h4 class="text-sm font-medium text-gray-800 dark:text-gray-100 mb-2">${tc.title}</h4>
+                    
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                        <span class="font-medium">Req:</span> ${tc.mapped_requirement_id}
+                    </div>
+                    
+                    ${tc.preconditions?.length > 0 ? `
+                        <div class="mb-3">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Preconditions:</span>
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                ${tc.preconditions.map(p => `<span class="px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 rounded text-xs">${p}</span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="space-y-2 text-sm">
+                        ${tc.steps?.map((step, i) => `
+                            <div class="flex gap-2">
+                                <span class="w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-xs flex-shrink-0">${step.step_number || i + 1}</span>
+                                <div class="text-gray-600 dark:text-gray-300">${step.action}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <div class="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Expected Result</div>
+                        <div class="text-sm text-green-700 dark:text-green-300">✅ ${tc.expected_result}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        function highlightTestCase(tcId) {
+            showPage('artifacts');
+            switchArtifactTab('testcases');
+            setTimeout(() => {
+                const el = document.getElementById(`tc-${tcId}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-2', 'ring-primary-500');
+                    setTimeout(() => el.classList.remove('ring-2', 'ring-primary-500'), 2000);
+                }
+            }, 100);
+        }
+
+        // Render RTM
+        function renderRTM(data) {
+            const requirements = data.normalized_requirements || [];
+            const testCases = data.test_cases || [];
+            const rtm = data.test_plan?.rtm || [];
+            const metrics = data.test_plan?.metrics || {};
+
+            // Update stats
+            document.getElementById('rtmReqCount').textContent = requirements.length;
+            document.getElementById('rtmTcCount').textContent = testCases.length;
+            document.getElementById('rtmCoverage').textContent = (metrics.coverage_percentage || 0) + '%';
+            document.getElementById('rtmAmbig').textContent = requirements.filter(r => r.ambiguity?.is_ambiguous).length;
+
+            // Render charts
+            const typeDist = metrics.type_distribution || {};
+            const priorityDist = metrics.priority_distribution || {};
+            
+            const typeColors = {
+                'Positive': 'bg-green-500',
+                'Negative': 'bg-red-500',
+                'Edge': 'bg-purple-500',
+                'Boundary': 'bg-yellow-500',
+                'Security': 'bg-indigo-500',
+                'API': 'bg-pink-500'
+            };
+            const priorityColors = {
+                'P0': 'bg-red-500',
+                'P1': 'bg-orange-500',
+                'P2': 'bg-yellow-500',
+                'P3': 'bg-green-500'
+            };
+
+            const maxType = Math.max(...Object.values(typeDist), 1);
+            const maxPriority = Math.max(...Object.values(priorityDist), 1);
+
+            document.getElementById('rtmTypeChart').innerHTML = Object.entries(typeDist).map(([type, count]) => `
+                <div class="flex items-center gap-3">
+                    <span class="w-20 text-xs text-gray-600 dark:text-gray-400 truncate">${type}</span>
+                    <div class="flex-1 h-3 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                        <div class="h-full ${typeColors[type] || 'bg-gray-500'} rounded-full transition-all" style="width: ${(count / maxType) * 100}%"></div>
+                    </div>
+                    <span class="w-6 text-xs font-medium text-gray-700 dark:text-gray-300">${count}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('rtmPriorityChart').innerHTML = Object.entries(priorityDist).map(([pri, count]) => `
+                <div class="flex items-center gap-3">
+                    <span class="w-8 text-xs text-gray-600 dark:text-gray-400">${pri}</span>
+                    <div class="flex-1 h-3 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                        <div class="h-full ${priorityColors[pri] || 'bg-gray-500'} rounded-full transition-all" style="width: ${(count / maxPriority) * 100}%"></div>
+                    </div>
+                    <span class="w-6 text-xs font-medium text-gray-700 dark:text-gray-300">${count}</span>
+                </div>
+            `).join('');
+
+            // Render RTM table
+            const tbody = document.getElementById('rtmTableBody');
+            tbody.innerHTML = requirements.map(req => {
+                const linkedTCs = testCases.filter(tc => tc.mapped_requirement_id === req.requirement_id);
+                const badges = req.classification?.map(c => 
+                    `<span class="px-1.5 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400 rounded text-xs mr-1">${c}</span>`
+                ).join('') || '';
+                
+                const priorityColors = {
+                    'High': 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+                    'Medium': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
+                    'Low': 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                };
+                
+                return `
+                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="py-3 px-4">
+                            <span class="font-medium text-primary-600 dark:text-primary-400">${req.requirement_id}</span>
+                        </td>
+                        <td class="py-3 px-4 text-gray-600 dark:text-gray-300 max-w-xs truncate" title="${req.source_text}">
+                            ${req.source_text}
+                        </td>
+                        <td class="py-3 px-4">${badges}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 rounded text-xs font-medium ${priorityColors[req.priority_hint] || 'bg-gray-200 text-gray-700'}">${req.priority_hint}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex flex-wrap gap-1">
+                                ${linkedTCs.map(tc => 
+                                    `<span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded text-xs cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900" onclick="highlightTestCase('${tc.test_case_id}')">${tc.test_case_id}</span>`
+                                ).join('')}
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-300 rounded text-xs">${linkedTCs.length} TC(s)</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Export Artifacts
+        function exportArtifacts() {
+            if (!appState.generatedArtifacts) {
+                showToast('No artifacts to export', 'warning');
+                return;
+            }
+            
+            const data = JSON.stringify(appState.generatedArtifacts, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `test-artifacts-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Artifacts exported!', 'success');
+        }
+
+        // Initialize
+        updateCharCount();
+    </script>
+</body>
+</html>
