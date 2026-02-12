@@ -67,7 +67,7 @@
         
         .progress-ring { transition: stroke-dashoffset 0.5s ease; }
         
-        .filter-btn.active { background: #6366f1; color: white; }
+        .filter-btn.active { background: #6366f1; color: white; border-color: #6366f1; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
@@ -215,6 +215,9 @@
                                 <button onclick="loadTemplate('telemedicine')" class="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center gap-2">
                                     <span>🩺</span> Telemedicine Platform
                                 </button>
+                                <button onclick="loadTemplate('comprehensive_test')" class="w-full text-left px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center gap-2 border-t border-gray-200 dark:border-gray-600 mt-2 pt-2">
+                                    <span>🧪</span> Comprehensive Test Suite
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -251,7 +254,20 @@
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">AI Analysis Results</h3>
                     <div class="flex items-center gap-3">
-                        <button onclick="selectAllRequirements()" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700">Select All</button>
+                        <!-- Filters -->
+                        <select id="priorityFilter" onchange="filterRequirements()" class="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            <option value="all">All Priorities</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                        <select id="confidenceFilter" onchange="filterRequirements()" class="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            <option value="all">All Confidence</option>
+                            <option value="high">High (≥80%)</option>
+                            <option value="medium">Medium (60-79%)</option>
+                            <option value="low">Low (&lt;60%)</option>
+                        </select>
+                        <button id="selectAllBtn" onclick="toggleSelectAll()" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700">Deselect All</button>
                         <button onclick="generateFromSelected()" class="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all font-medium shadow-md flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -282,34 +298,51 @@
                 </div>
             </div>
             
-            <!-- Filter Controls -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6 flex flex-wrap gap-2">
-                <span class="text-sm font-medium text-gray-600 dark:text-gray-400 py-2">Filters:</span>
-                <button onclick="filterTestCases('all')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="all">All</button>
-                <button onclick="filterTestCases('P0')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="P0">P0</button>
-                <button onclick="filterTestCases('P1')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="P1">P1</button>
-                <button onclick="filterTestCases('P2')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="P2">P2</button>
-                <button onclick="filterTestCases('Positive')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Positive">Positive</button>
-                <button onclick="filterTestCases('Negative')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Negative">Negative</button>
-                <button onclick="filterTestCases('Boundary')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Boundary">Boundary</button>
-                <button onclick="filterTestCases('Edge')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Edge">Edge</button>
-                <button onclick="filterTestCases('Manual')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Manual">Manual</button>
-                <button onclick="filterTestCases('Automation')" class="filter-btn px-3 py-1.5 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" data-filter="Automation">Automation</button>
-            </div>
-            
             <!-- Tabbed Artifacts -->
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <div class="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700">
-                    <button onclick="switchArtifactTab('testplan')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600" data-tab="testplan">Test Plan</button>
+                    <button onclick="switchArtifactTab('testcases')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600" data-tab="testcases">Test Cases</button>
+                    <button onclick="switchArtifactTab('scenarios')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-400" data-tab="scenarios">Test Scenarios</button>
                     <button onclick="switchArtifactTab('strategy')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-400" data-tab="strategy">Test Strategy</button>
-                    <button onclick="switchArtifactTab('scenarios')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-400" data-tab="scenarios">Scenarios</button>
-                    <button onclick="switchArtifactTab('testcases')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-400" data-tab="testcases">Test Cases</button>
+                    <button onclick="switchArtifactTab('testplan')" class="artifact-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-400" data-tab="testplan">Test Plan</button>
                 </div>
                 
                 <div class="p-6">
-                    <!-- Test Plan Tab -->
-                    <div id="artifact-testplan" class="artifact-content">
-                        <div id="testPlanContent" class="prose dark:prose-invert max-w-none"></div>
+                    <!-- Test Cases Tab -->
+                    <div id="artifact-testcases" class="artifact-content">
+                        <!-- Filters inside Test Cases tab -->
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-4">
+                            <div class="flex flex-wrap gap-4">
+                                <!-- Priority Filters -->
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Priority:</span>
+                                    <button onclick="filterTestCases('all')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="all">All</button>
+                                    <button onclick="filterTestCases('P0')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="P0">P0</button>
+                                    <button onclick="filterTestCases('P1')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="P1">P1</button>
+                                    <button onclick="filterTestCases('P2')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="P2">P2</button>
+                                </div>
+                                <!-- Flow Filters -->
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Flow:</span>
+                                    <button onclick="filterTestCases('Positive')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="Positive">Positive</button>
+                                    <button onclick="filterTestCases('Negative')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="Negative">Negative</button>
+                                    <button onclick="filterTestCases('Boundary')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="Boundary">Boundary</button>
+                                    <button onclick="filterTestCases('Edge')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="Edge">Edge</button>
+                                </div>
+                                <!-- Type Filters -->
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type:</span>
+                                    <button onclick="filterTestCases('Manual')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="Manual">Manual</button>
+                                    <button onclick="filterTestCases('Automation')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="Automation">Automation</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="testCasesList" class="space-y-3"></div>
+                    </div>
+                    
+                    <!-- Test Scenarios Tab -->
+                    <div id="artifact-scenarios" class="artifact-content hidden">
+                        <div id="testScenariosContent" class="space-y-4"></div>
                     </div>
                     
                     <!-- Test Strategy Tab -->
@@ -317,14 +350,9 @@
                         <div id="testStrategyContent" class="prose dark:prose-invert max-w-none"></div>
                     </div>
                     
-                    <!-- Scenarios Tab -->
-                    <div id="artifact-scenarios" class="artifact-content hidden">
-                        <div id="testScenariosContent" class="space-y-4"></div>
-                    </div>
-                    
-                    <!-- Test Cases Tab -->
-                    <div id="artifact-testcases" class="artifact-content">
-                        <div id="testCasesList" class="space-y-3"></div>
+                    <!-- Test Plan Tab -->
+                    <div id="artifact-testplan" class="artifact-content hidden">
+                        <div id="testPlanContent" class="prose dark:prose-invert max-w-none"></div>
                     </div>
                 </div>
             </div>
@@ -341,19 +369,19 @@
             
             <!-- RTM Stats -->
             <div class="grid grid-cols-4 gap-4 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-all" onclick="filterTestCases('rtm-requirements')">
                     <div class="text-2xl font-bold text-primary-600" id="rtmReqCount">0</div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">Requirements</div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-all" onclick="filterTestCases('rtm-testcases')">
                     <div class="text-2xl font-bold text-green-600" id="rtmTcCount">0</div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">Test Cases</div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-all" onclick="filterTestCases('rtm-coverage')">
                     <div class="text-2xl font-bold text-emerald-600" id="rtmCoverage">0%</div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">Coverage</div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-all" onclick="filterTestCases('rtm-ambiguous')">
                     <div class="text-2xl font-bold text-amber-500" id="rtmAmbig">0</div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">Ambiguous</div>
                 </div>
@@ -372,23 +400,68 @@
             </div>
             
             <!-- RTM Table -->
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Traceability Matrix</h3>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            <span class="inline-block w-3 h-3 rounded-sm bg-green-500 mr-1"></span>Positive
+                            <span class="inline-block w-3 h-3 rounded-sm bg-red-500 ml-2 mr-1"></span>Negative
+                            <span class="inline-block w-3 h-3 rounded-sm bg-yellow-500 ml-2 mr-1"></span>Edge
+                            <span class="inline-block w-3 h-3 rounded-sm bg-blue-500 ml-2 mr-1"></span>Boundary
+                        </span>
+                        <button onclick="toggleRTMView()" id="rtmFlipBtn" class="px-3 py-1.5 bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400 rounded-lg text-sm font-medium hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors">
+                            Show Heatmap ↔
+                        </button>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto" id="rtmTableContainer">
                     <table class="w-full text-sm">
-                        <thead class="bg-gray-50 dark:bg-gray-700/50">
+                        <thead class="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10">
                             <tr>
                                 <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Req ID</th>
                                 <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Source Text</th>
                                 <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Classification</th>
-                                <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Priority</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                                    <select onchange="filterRTMPriority(this.value)" class="bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs cursor-pointer">
+                                        <option value="all">Priority</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                </th>
                                 <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Test Cases</th>
                                 <th class="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">Coverage</th>
                             </tr>
                         </thead>
-                        <tbody id="rtmTableBody"></tbody>
+                    </table>
+                    <div class="max-h-72 overflow-y-auto">
+                        <table class="w-full text-sm">
+                            <tbody id="rtmTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RTM Heatmap -->
+            <div id="rtmBack" class="hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Coverage Heatmap</h3>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                        <span class="inline-block w-3 h-3 rounded-sm bg-green-500 mr-1"></span>Positive
+                        <span class="inline-block w-3 h-3 rounded-sm bg-red-500 ml-2 mr-1"></span>Negative
+                        <span class="inline-block w-3 h-3 rounded-sm bg-yellow-500 ml-2 mr-1"></span>Edge
+                        <span class="inline-block w-3 h-3 rounded-sm bg-blue-500 ml-2 mr-1"></span>Boundary
+                    </span>
+                </div>
+                <div class="overflow-auto max-h-[500px]">
+                    <table class="w-full text-xs" id="rtmHeatmap">
+                        <thead class="bg-gray-50 dark:bg-gray-700/50 sticky top-0">
+                            <tr id="heatmapHeader">
+                                <th class="text-left py-2 px-2 font-medium text-gray-600 dark:text-gray-400 sticky left-0 bg-gray-50 dark:bg-gray-700/50 z-10 min-w-[60px]">Req</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rtmHeatmapBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -402,7 +475,9 @@
             analyzedRequirements: [],
             selectedRequirementIds: new Set(),
             generatedArtifacts: null,
-            currentFilter: 'all'
+            currentFilter: 'all',
+            rtmFilter: null,
+            rtmPriorityFilter: 'all'
         };
 
         // Theme Toggle
@@ -459,7 +534,22 @@
             parking: 'The system shall detect available parking slots using IoT sensors installed at each slot. Sensor data shall synchronize with the central server every 30 seconds. The system shall display real-time slot availability to users within two seconds of refresh. Users shall reserve a parking slot for a selected future time window. Reserved slots shall not be visible as available to other users. If a user does not enter the parking lot within fifteen minutes of reservation start time, the system shall release the slot automatically. The system shall start the parking session when vehicle entry is detected through RFID or license plate recognition. The system shall calculate parking fees based on duration and configured pricing rules. Overstay charges shall apply automatically after grace period expires. Users shall complete payment before exiting the parking lot. If payment fails, the system shall mark the session as pending payment and restrict future reservations. Operators shall configure pricing rules, operating hours, and total slot capacity through an administrative dashboard. The system shall generate daily occupancy reports and revenue summaries. The system shall handle 100,000 concurrent user sessions. System uptime shall not fall below 99.9 percent. If sensor data becomes unavailable, operators shall manually override slot availability.',
             food_delivery: 'The system shall allow customers to search restaurants based on location and cuisine type. The system shall display estimated delivery time and delivery charges before order confirmation. Customers shall add items to cart and modify item quantity before checkout. The system shall validate item availability before order placement. If an item becomes unavailable during checkout, the system shall notify the user and prevent order confirmation. Customers shall apply discount coupons during checkout. The system shall validate coupon eligibility based on expiration date and minimum order value. The system shall process payments using credit card, debit card, UPI, and wallet. Payment confirmation shall occur within five seconds. If payment is deducted but order creation fails, the system shall automatically initiate refund within ten minutes. The system shall assign delivery partners based on proximity and availability. Delivery partner location shall update every five seconds. Customers shall track order status in real time. The system shall allow cancellation before order preparation starts. The system shall support up to 150,000 concurrent users during peak hours. System availability shall be at least 99.9 percent uptime monthly. All personal and payment information shall be encrypted. The system shall prevent duplicate order creation if the user refreshes the confirmation page repeatedly.',
             wallet: 'The system shall allow users to register using a mobile number and email address. The system shall verify the mobile number using a one-time password before account activation. Users shall create a secure login PIN during registration. The system shall allow users to add money to their wallet using debit card, credit card, or UPI. The wallet balance shall update immediately after successful payment confirmation. If payment fails after deduction from the bank, the system shall automatically reconcile the transaction within five minutes. Users shall transfer money to another registered user using mobile number or wallet ID. The system shall prevent transfers if the sender\'s wallet balance is insufficient. The system shall block transfers exceeding ₹1,00,000 per day. All wallet transactions shall be recorded in transaction history. Transaction history shall display date, time, transaction ID, amount, and status. Users shall receive a push notification after every successful or failed transaction. The system shall support up to 75,000 concurrent active users. Transaction processing time shall not exceed two seconds under normal load. All financial data shall be encrypted at rest and in transit. The system shall comply with PCI-DSS standards. If the notification service fails, the transaction shall still complete successfully and the notification shall retry asynchronously.',
-            telemedicine: 'The system shall allow patients to create an account using email and password. Email verification shall be mandatory before booking appointments. Patients shall book appointments based on doctor availability schedule. The system shall prevent double booking of time slots. Patients shall pay consultation fees before appointment confirmation. If payment fails after deduction, refund shall be processed automatically within fifteen minutes. The system shall enable secure video consultation between patient and doctor. Video latency shall not exceed 300 milliseconds under stable network conditions. Doctors shall create digital prescriptions including diagnosis, medication, dosage, and duration. Patients shall view prescription history but shall not edit prescription details. All medical records shall be encrypted and stored securely. The system shall comply with healthcare data privacy regulations. The platform shall support 10,000 concurrent consultation sessions. If the video connection drops, the system shall attempt automatic reconnection within ten seconds. If reconnection fails, the session shall be marked incomplete and partial refund shall be evaluated.'
+            telemedicine: 'The system shall allow patients to create an account using email and password. Email verification shall be mandatory before booking appointments. Patients shall book appointments based on doctor availability schedule. The system shall prevent double booking of time slots. Patients shall pay consultation fees before appointment confirmation. If payment fails after deduction, refund shall be processed automatically within fifteen minutes. The system shall enable secure video consultation between patient and doctor. Video latency shall not exceed 300 milliseconds under stable network conditions. Doctors shall create digital prescriptions including diagnosis, medication, dosage, and duration. Patients shall view prescription history but shall not edit prescription details. All medical records shall be encrypted and stored securely. The system shall comply with healthcare data privacy regulations. The platform shall support 10,000 concurrent consultation sessions. If the video connection drops, the system shall attempt automatic reconnection within ten seconds. If reconnection fails, the session shall be marked incomplete and partial refund shall be evaluated.',
+            comprehensive_test: `1. The system shall authenticate users using username and password within 3 seconds. This requirement has clear actor, action, and time constraint. No ambiguity here. (HIGH PRIORITY - Authentication, Clear, Multiple Conditions: time constraint)
+2. The system shall display the dashboard when the user logs in successfully. Simple and clear. (MEDIUM PRIORITY - Functional, Clear, No Conditions)
+3. The data shall be processed quickly during peak hours. What does "quickly" mean? Who is the data processor? This has vague terms. (HIGH PRIORITY - Processing, VAGUE, Conditions: during peak hours)
+4. The payment gateway shall handle transactions securely. No error handling specified. (FINANCIAL, VAGUE - Missing expected outcome)
+5. When a user adds items to cart and checkout is not completed within 15 minutes, the system shall release the reserved inventory automatically. If payment processing fails, the system shall retry twice before marking the order as failed. Nested conditions: 1) checkout timeout, 2) payment retry logic. Clear actor and action. (HIGH PRIORITY - E-commerce, Clear, Multiple Conditions: timeout, payment retry)
+6. The API shall accept JSON requests and return XML responses. Clear specification. (API, Clear, No Conditions)
+7. Users should be able to generate reports as needed. Vague terms "as needed". What are the report types? (REPORTING, VAGUE)
+8. The system shall support at least 100,000 concurrent sessions during normal operation and shall scale to handle 500,000 sessions during high load. Multiple capacity thresholds with different conditions. (SCALABILITY, Clear, Multiple Conditions: normal vs high load)
+9. The administrator shall configure notification settings. Simple and clear. (USER MANAGEMENT, Clear, No Conditions)
+10. If the validation fails, the system shall show an appropriate error message. Clear error handling specified. (VALIDATION, Clear, Conditions: validation fails)
+11. The response time shall not exceed 200 milliseconds for 95th percentile requests under normal load. Specific performance metric. (PERFORMANCE, Clear, Conditions: 95th percentile, normal load)
+12. The system may notify users about new features. Optional requirement with "may" - should this be included? (NOTIFICATION, VAGUE - Optional)
+13. All sensitive data shall be encrypted using AES-256 before storage. Security requirement with specific algorithm. (SECURITY, Clear, No Conditions)
+14. The integration shall work with third-party services when they are available. Conditional on external services. (INTEGRATION, VAGUE - Conditions depend on external)
+15. Users shall complete payment before downloading purchased content. Clear precondition. (PAYMENT, Clear, Conditions: payment completion)`
         };
 
         function loadTemplate(key) {
@@ -508,10 +598,10 @@
             }, 3000);
         }
 
-        // API Configuration
-        const API_URL = 'http://localhost:9000';
+        // API Configuration - Removed backend dependency
+        // Process Requirements entirely client-side
 
-        // Process Requirements
+        // Process Requirements - Client-side implementation
         async function processRequirements() {
             const text = requirementsInput.value.trim();
             if (!text) {
@@ -532,25 +622,18 @@
                     progressBar.style.width = progress + '%';
                 }, 200);
 
-                const response = await fetch(`${API_URL}/generate`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text })
-                });
+                // Process requirements client-side (simulated AI analysis)
+                const data = await analyzeRequirements(text);
 
                 clearInterval(progressInterval);
                 progressBar.style.width = '100%';
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Processing failed');
-                }
-
-                const data = await response.json();
-                
                 // Store analyzed requirements
                 appState.analyzedRequirements = data.normalized_requirements || [];
                 appState.selectedRequirementIds = new Set(appState.analyzedRequirements.map(r => r.requirement_id));
+                
+                // Update button text to "Deselect All" since all are selected
+                document.getElementById('selectAllBtn').textContent = 'Deselect All';
                 
                 // Render requirements list
                 renderRequirements(data.normalized_requirements || []);
@@ -567,57 +650,646 @@
             }
         }
 
+        // Client-side Requirements Analysis
+        async function analyzeRequirements(text) {
+            return new Promise((resolve) => {
+                // Split text into individual requirements and track line numbers
+                const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+                
+                const normalizedRequirements = sentences.map((sentence, idx) => {
+                    const reqId = `REQ-${String(idx + 1).padStart(3, '0')}`;
+                    const normalized = normalizeRequirement(sentence);
+                    const classification = classifyRequirement(sentence, normalized);
+                    const ambiguity = detectAmbiguity(sentence, normalized);
+                    
+                    return {
+                        requirement_id: reqId,
+                        source_text: sentence.trim(),
+                        source_line: idx + 1,
+                        normalized: normalized,
+                        classification: classification,
+                        priority_hint: determinePriority(normalized, classification),
+                        ambiguity: ambiguity,
+                        provenance: {
+                            confidence: calculateConfidence(normalized, ambiguity),
+                            method: 'rule-based'
+                        }
+                    };
+                });
+
+                // Generate test cases for each requirement
+                const testCases = generateTestCases(normalizedRequirements);
+                
+                // Generate test plan
+                const testPlan = generateTestPlan(normalizedRequirements, testCases);
+
+                setTimeout(() => {
+                    resolve({
+                        normalized_requirements: normalizedRequirements,
+                        test_cases: testCases,
+                        test_plan: testPlan
+                    });
+                }, 500); // Small delay for UX
+            });
+        }
+
+        // Normalize requirement into Actor-Action-Conditions-Outcome format
+        function normalizeRequirement(text) {
+            const normalized = {
+                actor: 'N/A',
+                action: 'N/A',
+                conditions: [],
+                expected_outcome: 'N/A'
+            };
+
+            const lowerText = text.toLowerCase();
+            
+            // Detect actors
+            const actors = [
+                { keywords: ['user', 'customer', 'end user'], name: 'User' },
+                { keywords: ['admin', 'administrator', 'operator'], name: 'Administrator' },
+                { keywords: ['system', 'platform', 'application'], name: 'System' },
+                { keywords: ['api', 'service', 'endpoint'], name: 'API' },
+                { keywords: ['mobile app', 'web app', 'client'], name: 'Client' },
+                { keywords: ['payment gateway', 'payment'], name: 'Payment System' }
+            ];
+            
+            for (const actor of actors) {
+                if (actor.keywords.some(k => lowerText.includes(k))) {
+                    normalized.actor = actor.name;
+                    break;
+                }
+            }
+            
+            // If no actor found, try to extract from beginning
+            if (normalized.actor === 'N/A') {
+                const words = text.split(' ');
+                if (words[0].toLowerCase() === 'the') {
+                    normalized.actor = words[1] ? words[1].charAt(0).toUpperCase() + words[1].slice(1) : 'User';
+                }
+            }
+
+            // Detect actions
+            const actions = [
+                { keywords: ['login', 'sign in', 'authenticate'], name: 'Authenticate' },
+                { keywords: ['logout', 'sign out', 'log out'], name: 'Logout' },
+                { keywords: ['register', 'signup', 'create account'], name: 'Register' },
+                { keywords: ['validate', 'verify', 'check'], name: 'Validate' },
+                { keywords: ['display', 'show', 'render', 'present'], name: 'Display' },
+                { keywords: ['save', 'store', 'persist', 'write'], name: 'Save' },
+                { keywords: ['delete', 'remove', 'erase', 'cancel'], name: 'Delete' },
+                { keywords: ['update', 'modify', 'edit', 'change'], name: 'Update' },
+                { keywords: ['search', 'find', 'query'], name: 'Search' },
+                { keywords: ['process', 'handle', 'execute'], name: 'Process' },
+                { keywords: ['send', 'transmit', 'dispatch'], name: 'Send' },
+                { keywords: ['receive', 'get', 'fetch'], name: 'Receive' },
+                { keywords: ['calculate', 'compute', 'determine'], name: 'Calculate' },
+                { keywords: ['encrypt', 'hash', 'secure'], name: 'Encrypt' },
+                { keywords: ['notify', 'alert', 'inform'], name: 'Notify' },
+                { keywords: ['book', 'reserve', 'schedule'], name: 'Book' },
+                { keywords: ['pay', 'payment', 'checkout'], name: 'Process Payment' }
+            ];
+            
+            for (const action of actions) {
+                if (action.keywords.some(k => lowerText.includes(k))) {
+                    normalized.action = action.name;
+                    break;
+                }
+            }
+
+            // Detect conditions
+            const conditionPatterns = [
+                { pattern: /within\s+(\d+)\s+(second|minute|hour)/gi, label: 'Time constraint' },
+                { pattern: /if\s+(.+?)(?:,|\.)/gi, label: 'Conditional' },
+                { pattern: /when\s+(.+?)(?:,|\.)/gi, label: 'Trigger' },
+                { pattern: /unless\s+(.+?)(?:,|\.)/gi, label: 'Exception' },
+                { pattern: /during\s+(.+?)(?:,|\.)/gi, label: 'Duration' },
+                { pattern: /maximum\s+(\d+)/gi, label: 'Max limit' },
+                { pattern: /minimum\s+(\d+)/gi, label: 'Min limit' },
+                { pattern: /at\s+least\s+(\d+)/gi, label: 'Lower bound' },
+                { pattern: /not\s+less\s+than/gi, label: 'Lower bound' }
+            ];
+            
+            const foundConditions = [];
+            conditionPatterns.forEach(cp => {
+                let match;
+                while ((match = cp.pattern.exec(text)) !== null) {
+                    foundConditions.push(`${cp.label}: ${match[1] || match[0]}`);
+                }
+            });
+            
+            // Also look for numeric thresholds
+            const numericMatches = text.match(/(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:users?|transactions?|concurrent|per\s+(?:second|minute|hour))/gi);
+            if (numericMatches) {
+                numericMatches.forEach(m => foundConditions.push(`Capacity: ${m}`));
+            }
+            
+            normalized.conditions = foundConditions.slice(0, 5);
+
+            // Detect expected outcome
+            const outcomePatterns = [
+                { pattern: /shall\s+(.+?)(?:\.|,)/gi, name: 'Expected behavior' },
+                { pattern: /should\s+(.+?)(?:\.|,)/gi, name: 'Expected behavior' },
+                { pattern: /must\s+(.+?)(?:\.|,)/gi, name: 'Required outcome' },
+                { pattern: /will\s+(.+?)(?:\.|,)/gi, name: 'Outcome' },
+                { pattern: /then\s+(.+?)(?:\.|,)/gi, name: 'Result' }
+            ];
+            
+            for (const op of outcomePatterns) {
+                let match = op.pattern.exec(text);
+                if (match) {
+                    normalized.expected_outcome = match[1].substring(0, 100) + (match[1].length > 100 ? '...' : '');
+                    break;
+                }
+            }
+
+            return normalized;
+        }
+
+        // Classify requirement type
+        function classifyRequirement(text, normalized) {
+            const classifications = [];
+            const lowerText = text.toLowerCase();
+            
+            // Functional classification
+            if (/login|auth|password|credential|token|session/i.test(text)) {
+                classifications.push('Authentication');
+            }
+            if (/payment|credit|debit|transaction|refund|pay/i.test(text)) {
+                classifications.push('Financial');
+            }
+            if (/search|filter|sort|query|find/i.test(text)) {
+                classifications.push('Search');
+            }
+            if (/notification|email|alert|message|sms/i.test(text)) {
+                classifications.push('Notification');
+            }
+            if (/report|analytics|metric|statistic|dashboard/i.test(text)) {
+                classifications.push('Reporting');
+            }
+            if (/video|call|audio|conference|chat/i.test(text)) {
+                classifications.push('Communication');
+            }
+            if (/booking|reservation|schedule|appointment/i.test(text)) {
+                classifications.push('Scheduling');
+            }
+            if (/inventory|stock|product|item|cart/i.test(text)) {
+                classifications.push('E-commerce');
+            }
+            if (/profile|account|setting|preference/i.test(text)) {
+                classifications.push('User Management');
+            }
+            if (/api|endpoint|request|response|integration/i.test(text)) {
+                classifications.push('API');
+            }
+            
+            // Default to Functional if nothing matched
+            if (classifications.length === 0) {
+                classifications.push('Functional');
+            }
+            
+            return classifications;
+        }
+
+        // Detect ambiguities in requirements
+        function detectAmbiguity(text, normalized) {
+            const ambiguity = {
+                is_ambiguous: false,
+                issues: [],
+                clarifying_questions: []
+            };
+
+            // Check for vague terms
+            const vagueTerms = ['should', 'could', 'maybe', 'possibly', 'perhaps', 'usually', 'normally', 'typically', 'as appropriate', 'as needed', 'timely', 'promptly', 'quickly', 'reasonably'];
+            
+            vagueTerms.forEach(term => {
+                if (lowerText(text).includes(term)) {
+                    ambiguity.is_ambiguous = true;
+                    ambiguity.issues.push(`Vague term: "${term}"`);
+                    ambiguity.clarifying_questions.push(`Please clarify what "${term}" means in this context.`);
+                }
+            });
+
+            // Check for missing actor
+            if (!normalized.actor || normalized.actor === 'N/A') {
+                ambiguity.is_ambiguous = true;
+                ambiguity.issues.push('Actor not specified');
+                const action = normalized.action || 'this action';
+                ambiguity.clarifying_questions.push(`Who is responsible for performing "${action}"?`);
+            }
+
+            // Check for missing action clarity
+            if (normalized.action && normalized.action !== 'N/A' && /display|show|process|handle/i.test(normalized.action)) {
+                ambiguity.clarifying_questions.push(`What exactly should be "${normalized.action.toLowerCase()}" and in what format?`);
+            }
+
+            // Check for numeric thresholds with context
+            if (/\d+/.test(text)) {
+                const numbers = text.match(/\d+/g);
+                numbers.forEach(num => {
+                    if (/\d{6,}/.test(num)) {
+                        ambiguity.clarifying_questions.push(`What does the value "${num}" represent?`);
+                    }
+                    if (/5000|10000|15000|75000|100000/i.test(num)) {
+                        ambiguity.clarifying_questions.push(`Is "${num}" the expected concurrent users, TPS, or capacity limit?`);
+                    }
+                    if (/5|10|15|30|60|300/i.test(num)) {
+                        const timeUnit = text.match(/second|minute|hour/i);
+                        if (timeUnit) {
+                            ambiguity.clarifying_questions.push(`Is the ${num}${timeUnit[0].toLowerCase()} response time a hard SLA or target?`);
+                        }
+                    }
+                });
+            }
+
+            // Check for concurrency requirements
+            if (/concurrent|simultaneous|parallel/i.test(text)) {
+                ambiguity.clarifying_questions.push('What is the expected maximum concurrency level?');
+                ambiguity.clarifying_questions.push('Should the system reject requests when concurrency limit is reached, or queue them?');
+            }
+
+            // Check for missing expected outcome
+            if (!normalized.expected_outcome || normalized.expected_outcome === 'N/A' || normalized.expected_outcome === text.substring(0, 100)) {
+                ambiguity.clarifying_questions.push('What is the expected successful outcome when this requirement is met?');
+            }
+
+            // Check for error handling
+            if (!/error|fail|exception|invalid|incorrect/i.test(text)) {
+                ambiguity.clarifying_questions.push('What should happen if this requirement cannot be fulfilled?');
+            }
+
+            // Check for incomplete conditions
+            const conditions = normalized.conditions || [];
+            if (conditions.length === 0 && text.length > 50) {
+                ambiguity.clarifying_questions.push('What conditions must be true before this requirement becomes active?');
+            }
+
+            // Check for payment/financial context
+            if (/payment|pay|refund|charge/i.test(text) && !/currency|amount|INR|USD|Rs/i.test(text)) {
+                ambiguity.clarifying_questions.push('What is the currency and maximum transaction amount?');
+            }
+
+            // Check for security context
+            if (/encrypt|secure|privacy|compli/i.test(text) && !/standard|protocol|level/i.test(text)) {
+                ambiguity.clarifying_questions.push('Which security standard or protocol should be followed?');
+            }
+
+            return ambiguity;
+        }
+
+        // Determine priority based on analysis
+        function determinePriority(normalized, classification) {
+            let priority = 'Medium';
+            const classifications = classification || [];
+            
+            // Financial requirements are high priority
+            if (classifications.includes('Financial') || classifications.includes('Payment')) {
+                return 'High';
+            }
+            
+            // Authentication is high priority
+            if (classifications.includes('Authentication')) {
+                return 'High';
+            }
+            
+            // Security-related
+            if (/encrypt|security|secure|protect|privacy/i.test(normalized.source_text || '')) {
+                return 'High';
+            }
+            
+            // Time-critical requirements
+            if (/within \d+ second/i.test(normalized.source_text || '') || /performance|response time|latency/i.test(normalized.source_text || '')) {
+                return 'High';
+            }
+            
+            // Low priority for reporting, notifications
+            if (classifications.includes('Reporting')) {
+                return 'Low';
+            }
+            
+            return priority;
+        }
+
+        // Calculate confidence score
+        function calculateConfidence(normalized, ambiguity) {
+            let confidence = 1.0;
+            
+            // Reduce confidence for ambiguous requirements
+            if (ambiguity.is_ambiguous) {
+                confidence -= 0.2;
+            }
+            
+            // Reduce confidence for missing actor
+            if (!normalized.actor || normalized.actor === 'N/A') {
+                confidence -= 0.15;
+            }
+            
+            // Reduce confidence for missing conditions in complex requirements
+            const conditions = normalized.conditions || [];
+            const sourceText = normalized.source_text || '';
+            if (conditions.length === 0 && sourceText.length > 80) {
+                confidence -= 0.1;
+            }
+            
+            return Math.max(0.5, confidence);
+        }
+
+        // Generate test cases from requirements
+        function generateTestCases(requirements) {
+            const testCases = [];
+            
+            requirements.forEach(req => {
+                const baseTc = {
+                    mapped_requirement_id: req.requirement_id,
+                    priority: req.priority_hint === 'High' ? 'P0' : req.priority_hint === 'Medium' ? 'P1' : 'P2'
+                };
+
+                // Positive test case
+                testCases.push({
+                    ...baseTc,
+                    test_case_id: `TC-${req.requirement_id.split('-')[1]}-P001`,
+                    title: `Verify ${req.action || 'requirement'} with valid input`,
+                    test_type: 'Positive',
+                    preconditions: [],
+                    steps: [
+                        { step_number: 1, action: `Initiate ${req.action || 'action'} with valid parameters` },
+                        { step_number: 2, action: `Verify system processes the request` },
+                        { step_number: 3, action: `Confirm ${req.expected_outcome || 'expected behavior'}` }
+                    ],
+                    expected_result: `${req.action || 'Action'} completed successfully with expected outcome`,
+                    automation_feasibility: { feasible: true, notes: 'Standard flow' }
+                });
+
+                // Negative test cases
+                testCases.push({
+                    ...baseTc,
+                    test_case_id: `TC-${req.requirement_id.split('-')[1]}-N001`,
+                    title: `Verify ${req.action || 'requirement'} handles invalid input gracefully`,
+                    test_type: 'Negative',
+                    preconditions: [],
+                    steps: [
+                        { step_number: 1, action: `Attempt ${req.action || 'action'} with invalid/missing input` },
+                        { step_number: 2, action: `Verify system rejects invalid input` },
+                        { step_number: 3, action: `Confirm appropriate error message is displayed` }
+                    ],
+                    expected_result: 'System displays error message and does not process invalid input',
+                    automation_feasibility: { feasible: true, notes: 'Error handling flow' }
+                });
+
+                // Boundary test if numeric values present
+                if (/\d+/.test(req.source_text)) {
+                    testCases.push({
+                        ...baseTc,
+                        test_case_id: `TC-${req.requirement_id.split('-')[1]}-B001`,
+                        title: `Verify ${req.action || 'requirement'} at boundary values`,
+                        test_type: 'Boundary',
+                        preconditions: [],
+                        steps: [
+                            { step_number: 1, action: `Test with boundary values (min/max thresholds)` },
+                            { step_number: 2, action: `Verify behavior at exactly threshold values` },
+                            { step_number: 3, action: `Confirm handling of values just below/above thresholds` }
+                        ],
+                        expected_result: 'System handles boundary values correctly',
+                        automation_feasibility: { feasible: true, notes: 'Boundary analysis' }
+                    });
+                }
+
+                // Edge case if concurrency mentioned
+                if (/concurrent|simultaneous|parallel/i.test(req.source_text)) {
+                    testCases.push({
+                        ...baseTc,
+                        test_case_id: `TC-${req.requirement_id.split('-')[1]}-E001`,
+                        title: `Verify ${req.action || 'requirement'} under concurrent access`,
+                        test_type: 'Edge',
+                        preconditions: ['Multiple user sessions active'],
+                        steps: [
+                            { step_number: 1, action: `Initiate ${req.action || 'action'} from multiple sessions simultaneously` },
+                            { step_number: 2, action: `Verify system handles concurrent requests` },
+                            { step_number: 3, action: `Confirm data consistency across all sessions` }
+                        ],
+                        expected_result: 'All concurrent requests processed correctly without data corruption',
+                        automation_feasibility: { feasible: false, notes: 'Requires load testing setup' }
+                    });
+                }
+
+                // Error handling test
+                if (!/error|fail|exception/i.test(req.source_text)) {
+                    testCases.push({
+                        ...baseTc,
+                        test_case_id: `TC-${req.requirement_id.split('-')[1]}-E002`,
+                        title: `Verify ${req.action || 'requirement'} handles system failures`,
+                        test_type: 'Negative',
+                        preconditions: ['Simulate system failure conditions'],
+                        steps: [
+                            { step_number: 1, action: `Trigger failure condition during ${req.action || 'action'}` },
+                            { step_number: 2, action: `Verify system responds appropriately to failure` },
+                            { step_number: 3, action: `Confirm system recovers or provides appropriate feedback` }
+                        ],
+                        expected_result: 'System handles failure gracefully with appropriate error handling',
+                        automation_feasibility: { feasible: false, notes: 'Chaos testing required' }
+                    });
+                }
+            });
+
+            return testCases;
+        }
+
+        // Generate test plan
+        function generateTestPlan(requirements, testCases) {
+            const priorityCounts = { P0: 0, P1: 0, P2: 0 };
+            testCases.forEach(tc => {
+                if (priorityCounts[tc.priority] !== undefined) {
+                    priorityCounts[tc.priority]++;
+                }
+            });
+
+            const typeCounts = {};
+            testCases.forEach(tc => {
+                typeCounts[tc.test_type] = (typeCounts[tc.test_type] || 0) + 1;
+            });
+
+            const testTypes = Object.keys(typeCounts);
+            
+            return {
+                plan_id: `TP-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`,
+                version: '1.0',
+                objectives: 'Validate that all specified requirements are met through comprehensive test coverage including functional, boundary, and edge case testing.',
+                scope: `Testing ${requirements.length} requirements generating ${testCases.length} test cases covering ${testTypes.length} test types.`,
+                test_strategy: {
+                    // Section 1: Scope and Overview
+                    objectives: 'Ensure functional correctness, boundary handling, and error resilience',
+                    scope: 'Full regression testing of specified requirements',
+                    approval_authority: 'Business Team, Project Management, Development Lead',
+                    testing_activities: 'Unit Testing, Integration Testing, System Testing, UAT',
+                    
+                    // Section 2: Testing Methodology
+                    levels: 'Unit Testing, Integration Testing, System Testing, UAT',
+                    team_roles: 'QA Lead, Test Engineers, Developers, Business Analysts',
+                    change_management: 'Process for handling Change Requests (CR) and scope modifications',
+                    defect_management: 'Defect triage, re-testing, regression testing, and sign-off procedures',
+                    
+                    // Section 3: Test Environment
+                    environments: 'Development, QA, Staging environments as required',
+                    test_data_requirements: 'Data preparation, masking, and validation procedures',
+                    backup_restore: 'Test data backup strategy and recovery procedures',
+                    environment_count: 'Minimum required environments based on project complexity',
+                    
+                    // Section 4: Testing Tools
+                    test_management_tool: 'Test case management and traceability tools',
+                    automation_tool: 'Selenium, Cypress, Playwright, or similar',
+                    performance_tool: 'JMeter, LoadRunner, or similar for load testing',
+                    security_tool: 'OWASP ZAP, Burp Suite, or similar security tools',
+                    
+                    // Section 5: Release Control
+                    release_management: 'Version-controlled release planning with history tracking',
+                    test_execution_strategy: 'Structured test execution based on release cycles',
+                    regression_testing: 'Automated regression suite execution per release',
+                    signoff_criteria: 'Pass rates, critical defect closure, and coverage thresholds',
+                    
+                    // Section 6: Risk Analysis
+                    risks: 'Schedule constraints, resource availability, environment dependencies',
+                    mitigation_strategies: 'Proactive risk monitoring and contingency planning',
+                    contingency_plan: 'Fallback strategies for high-impact risk scenarios',
+                    priority_focus: 'High priority (P0) tests cover critical path and financial/security requirements',
+                    
+                    // Section 7: Review and Approvals
+                    reviewers: 'System Administration, Project Management, Development, Business Teams',
+                    approval_signoff: 'Document approval with name, date, and comments',
+                    review_summary: 'Tracked changes and improvement recommendations',
+                    process_updates: 'Continuous improvement based on review feedback',
+                    
+                    // Legacy fields for compatibility
+                    approach: 'Risk-based testing with priority P0 tests executed first, followed by P1 and P2',
+                    test_types_covered: testTypes
+                },
+                test_scenarios: requirements.map((req, idx) => ({
+                    scenario_id: `SCN-${String(idx + 1).padStart(3, '0')}`,
+                    requirement_id: req.requirement_id,
+                    description: `Test scenario for: ${req.source_text.substring(0, 100)}...`,
+                    priority: req.priority_hint,
+                    preconditions: [],
+                    test_cases: testCases.filter(tc => tc.mapped_requirement_id === req.requirement_id).map(tc => tc.test_case_id)
+                })),
+                metrics: {
+                    total_requirements: requirements.length,
+                    total_test_cases: testCases.length,
+                    coverage_percentage: Math.min(100, Math.round((testCases.length / Math.max(requirements.length * 4, 1)) * 100)),
+                    priority_distribution: priorityCounts,
+                    type_distribution: typeCounts
+                },
+                rtm: requirements.map(req => ({
+                    requirement_id: req.requirement_id,
+                    source_text: req.source_text,
+                    classification: req.classification,
+                    priority: req.priority_hint,
+                    test_cases: testCases.filter(tc => tc.mapped_requirement_id === req.requirement_id).map(tc => tc.test_case_id),
+                    coverage: '100%'
+                }))
+            };
+        }
+
+        function lowerText(text) { return text.toLowerCase(); }
+
         function renderRequirements(requirements) {
             const container = document.getElementById('requirementsList');
             
-            const html = requirements.map((req, idx) => {
+            // Apply filters
+            const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
+            const confidenceFilter = document.getElementById('confidenceFilter')?.value || 'all';
+            
+            const filteredRequirements = requirements.filter(req => {
+                // Priority filter
+                if (priorityFilter !== 'all' && req.priority_hint !== priorityFilter) {
+                    return false;
+                }
+                
+                // Confidence filter
+                const confidence = Math.round((req.provenance?.confidence || 1) * 100);
+                if (confidenceFilter !== 'all') {
+                    if (confidenceFilter === 'high' && confidence < 80) return false;
+                    if (confidenceFilter === 'medium' && (confidence < 60 || confidence >= 80)) return false;
+                    if (confidenceFilter === 'low' && confidence >= 60) return false;
+                }
+                
+                return true;
+            });
+            
+            const html = filteredRequirements.map((req, idx) => {
                 const isSelected = appState.selectedRequirementIds.has(req.requirement_id);
                 const priorityColors = {
                     'High': 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
                     'Medium': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
                     'Low': 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                 };
-                const badges = req.classification?.map(c => 
-                    `<span class="px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300">${c}</span>`
-                ).join('') || '';
+                const confidence = Math.round((req.provenance?.confidence || 1) * 100);
+                const confidenceColor = confidence >= 80 ? 'text-green-600' : confidence >= 60 ? 'text-yellow-600' : 'text-red-600';
+                
+                // Generate specific clarifying questions based on missing info
+                const clarifyingQuestions = [];
+                if (!req.normalized?.actor || req.normalized.actor === 'N/A') {
+                    clarifyingQuestions.push(`Who is the actor performing "${req.normalized?.action || 'this action'}"?`);
+                }
+                if (req.normalized?.conditions?.length === 0 && req.source_text.length > 60) {
+                    clarifyingQuestions.push('What conditions must be met before this requirement applies?');
+                }
+                if (req.ambiguity?.clarifying_questions) {
+                    req.ambiguity.clarifying_questions.forEach(q => clarifyingQuestions.push(q));
+                }
                 
                 return `
-                    <div class="card-select bg-white dark:bg-gray-800 rounded-xl border-2 ${isSelected ? 'border-primary-500 ring-2 ring-primary-200 dark:ring-primary-800' : 'border-gray-200 dark:border-gray-600'} p-4 transition-all cursor-pointer" onclick="toggleRequirement('${req.requirement_id}')" data-req-id="${req.requirement_id}">
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <input type="checkbox" ${isSelected ? 'checked' : ''} class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" onclick="event.stopPropagation(); toggleRequirement('${req.requirement_id}')">
-                                    <span class="px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded text-xs font-medium">${req.requirement_id}</span>
-                                    ${badges}
-                                    <span class="px-2 py-1 rounded-full text-xs font-medium ${priorityColors[req.priority_hint] || 'bg-gray-200 text-gray-700'}">${req.priority_hint}</span>
-                                    ${req.ambiguity?.is_ambiguous ? '<span class="px-2 py-1 bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 rounded text-xs font-medium">⚠️ Ambiguous</span>' : ''}
-                                </div>
-                                <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">${req.source_text}</p>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                    <div><span class="font-medium">Actor:</span> ${req.normalized?.actor || 'N/A'}</div>
-                                    <div><span class="font-medium">Action:</span> ${req.normalized?.action || 'N/A'}</div>
-                                    <div><span class="font-medium">Conditions:</span> ${req.normalized?.conditions?.length || 0}</div>
-                                    <div><span class="font-medium">Confidence:</span> ${(req.provenance?.confidence * 100 || 100).toFixed(0)}%</div>
-                                </div>
-                                ${req.ambiguity?.clarifying_questions?.length > 0 ? `
-                                    <div class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                                        <div class="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">❓ Clarifying Questions</div>
-                                        ${req.ambiguity.clarifying_questions.map(q => `<div class="text-xs text-amber-700 dark:text-amber-300 mb-1">• ${q}</div>`).join('')}
-                                    </div>
-                                ` : ''}
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border-2 ${isSelected ? 'border-primary-500' : 'border-gray-200 dark:border-gray-600'} p-4 transition-all">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mr-4">
+                                <input type="checkbox" ${isSelected ? 'checked' : ''} class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" onclick="toggleRequirement('${req.requirement_id}')">
                             </div>
-                            <div class="ml-4">
-                                ${isSelected ? 
-                                    '<svg class="w-6 h-6 text-primary-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>' : 
-                                    '<svg class="w-6 h-6 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd"/></svg>'
-                                }
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded text-xs font-medium">${req.requirement_id}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-300 mb-3 group relative cursor-help" title="Hover to see source">
+                                    ${req.source_text}
+                                    <span class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10 w-96 p-3 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg">
+                                        <span class="font-medium block mb-1">Source (Line ${req.source_line}):</span>
+                                        ${req.source_text}
+                                    </span>
+                                </p>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                    <div><span class="font-medium text-gray-700 dark:text-gray-300">Actor:</span> ${req.normalized?.actor || 'N/A'}</div>
+                                    <div><span class="font-medium text-gray-700 dark:text-gray-300">Action:</span> ${req.normalized?.action || 'N/A'}</div>
+                                    <div class="cursor-help group relative" title="Hover to see conditions">
+                                        <span class="font-medium text-gray-700 dark:text-gray-300">Conditions:</span> ${req.normalized?.conditions?.length || 0}
+                                        ${req.normalized?.conditions?.length > 0 ? `
+                                            <span class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10 w-80 p-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg">
+                                                <span class="font-medium block mb-1">Detected Conditions:</span>
+                                                <ul class="list-disc list-inside">
+                                                    ${(req.normalized?.conditions || []).map(c => `<li>${c}</li>`).join('')}
+                                                </ul>
+                                            </span>
+                                        ` : ''}
+                                    </div>
+                                    <div class="${confidenceColor}"><span class="font-medium">Confidence:</span> ${confidence}%</div>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 ml-4 flex flex-col items-end gap-2">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium ${priorityColors[req.priority_hint] || 'bg-gray-200 text-gray-700'}">${req.priority_hint}</span>
+                                <span class="px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded text-xs">${(req.classification || []).join(', ')}</span>
                             </div>
                         </div>
+                        ${clarifyingQuestions.length > 0 ? `
+                            <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                                <div class="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">Clarifying Questions:</div>
+                                ${clarifyingQuestions.map(q => `<div class="text-xs text-amber-700 dark:text-amber-300">• ${q}</div>`).join('')}
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('');
             
             container.innerHTML = html;
+        }
+
+        function filterRequirements() {
+            renderRequirements(appState.analyzedRequirements);
         }
 
         function toggleRequirement(reqId) {
@@ -629,8 +1301,19 @@
             renderRequirements(appState.analyzedRequirements);
         }
 
-        function selectAllRequirements() {
-            appState.analyzedRequirements.forEach(r => appState.selectedRequirementIds.add(r.requirement_id));
+        function toggleSelectAll() {
+            const allSelected = appState.selectedRequirementIds.size === appState.analyzedRequirements.length;
+            
+            if (allSelected) {
+                // Deselect all
+                appState.selectedRequirementIds.clear();
+                document.getElementById('selectAllBtn').textContent = 'Select All';
+            } else {
+                // Select all
+                appState.analyzedRequirements.forEach(r => appState.selectedRequirementIds.add(r.requirement_id));
+                document.getElementById('selectAllBtn').textContent = 'Deselect All';
+            }
+            
             renderRequirements(appState.analyzedRequirements);
         }
 
@@ -645,7 +1328,7 @@
             showToast('Input cleared', 'info');
         }
 
-        // Generate Artifacts from Selected Requirements
+        // Generate Artifacts from Selected Requirements - Client-side
         async function generateFromSelected() {
             if (appState.selectedRequirementIds.size === 0) {
                 showToast('Please select at least one requirement', 'warning');
@@ -655,33 +1338,15 @@
             // Filter artifacts to selected requirements
             const selectedReqs = appState.analyzedRequirements.filter(r => appState.selectedRequirementIds.has(r.requirement_id));
             
-            // Generate artifacts object
-            const artifacts = {
-                normalized_requirements: selectedReqs,
-                test_cases: appState.generatedArtifacts?.test_cases || [],
-                test_plan: appState.generatedArtifacts?.test_plan || null
-            };
+            // Generate artifacts object client-side
+            const testCases = generateTestCases(selectedReqs);
+            const testPlan = generateTestPlan(selectedReqs, testCases);
             
-            // If no test cases yet, generate them
-            if (!appState.generatedArtifacts) {
-                try {
-                    const response = await fetch(`${API_URL}/generate`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: appState.rawRequirements })
-                    });
-                    
-                    if (!response.ok) throw new Error('Generation failed');
-                    
-                    const data = await response.json();
-                    appState.generatedArtifacts = data;
-                    artifacts.test_cases = data.test_cases;
-                    artifacts.test_plan = data.test_plan;
-                } catch (error) {
-                    showToast('Error generating artifacts: ' + error.message, 'error');
-                    return;
-                }
-            }
+            appState.generatedArtifacts = {
+                normalized_requirements: selectedReqs,
+                test_cases: testCases,
+                test_plan: testPlan
+            };
 
             // Render artifacts
             renderTestPlan(appState.generatedArtifacts.test_plan);
@@ -691,6 +1356,7 @@
             renderRTM(appState.generatedArtifacts);
             
             showPage('artifacts');
+            switchArtifactTab('testcases'); // Set Test Cases as default tab
             showToast('Artifacts generated successfully!', 'success');
         }
 
@@ -709,14 +1375,34 @@
 
         // Filter Test Cases
         function filterTestCases(filter) {
+            console.log('filterTestCases called with:', filter);
             appState.currentFilter = filter;
+            
+            // Handle RTM stat card filters
+            if (filter.startsWith('rtm-')) {
+                const rtmFilter = filter;
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-700', 'dark:text-gray-300', 'border', 'border-gray-200', 'dark:border-gray-500');
+                });
+                // Switch to test cases tab if not already there
+                switchArtifactTab('testcases');
+                // Store RTM filter for special handling in renderTestCases
+                appState.rtmFilter = rtmFilter;
+                renderTestCases(appState.generatedArtifacts?.test_cases || []);
+                return;
+            }
+            
+            // Clear RTM filter for standard filters
+            appState.rtmFilter = null;
+            
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 if (btn.dataset.filter === filter) {
                     btn.classList.add('active');
-                    btn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                    btn.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-700', 'dark:text-gray-300', 'border', 'border-gray-200', 'dark:border-gray-500');
                 } else {
                     btn.classList.remove('active');
-                    btn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                    btn.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-700', 'dark:text-gray-300', 'border', 'border-gray-200', 'dark:border-gray-500');
                 }
             });
             renderTestCases(appState.generatedArtifacts?.test_cases || []);
@@ -732,38 +1418,357 @@
 
             const html = `
                 <div class="space-y-6">
+                    <!-- Header with Download Options -->
                     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                        <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Test Plan</h3>
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div><span class="text-sm text-gray-500">Plan ID:</span> <span class="font-medium">${testPlan.plan_id}</span></div>
-                            <div><span class="text-sm text-gray-500">Version:</span> <span class="font-medium">${testPlan.version}</span></div>
-                            <div><span class="text-sm text-gray-500">Created:</span> <span class="font-medium">${new Date().toLocaleDateString()}</span></div>
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Test Plan Document</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Plan ID: ${testPlan.plan_id} | Version: ${testPlan.version}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="downloadDocument('testplan', 'md')" class="px-3 py-1.5 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-lg text-sm flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    MD
+                                </button>
+                                <button onclick="downloadDocument('testplan', 'doc')" class="px-3 py-1.5 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-lg text-sm flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    DOC
+                                </button>
+                                <button onclick="downloadDocument('testplan', 'pdf')" class="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg text-sm flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    PDF
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-4">
+                            <div><span class="text-sm text-gray-500">Created:</span> <span class="font-medium text-gray-700 dark:text-gray-300">${new Date().toLocaleDateString()}</span></div>
                             <div><span class="text-sm text-gray-500">Status:</span> <span class="font-medium text-green-600">Draft</span></div>
+                            <div><span class="text-sm text-gray-500">Requirements:</span> <span class="font-medium text-gray-700 dark:text-gray-300">${testPlan.metrics?.total_requirements || 0}</span></div>
+                            <div><span class="text-sm text-gray-500">Test Cases:</span> <span class="font-medium text-gray-700 dark:text-gray-300">${testPlan.metrics?.total_test_cases || 0}</span></div>
                         </div>
                     </div>
                     
+                    <!-- Section 1.0: Introduction -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">Objectives</h4>
-                        <p class="text-gray-600 dark:text-gray-300">${testPlan.objectives}</p>
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">1.0</span>
+                            Introduction
+                        </h4>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <p class="text-gray-600 dark:text-gray-300 text-sm">${testPlan.introduction || 'This document provides a comprehensive summary of the product being tested and outlines all functions at a high level. The test plan defines the scope, objectives, approach, and resources required for successful testing of the system.'}</p>
+                        </div>
                     </div>
                     
+                    <!-- Section 2.0: Objectives and Tasks -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">Scope</h4>
-                        <p class="text-gray-600 dark:text-gray-300">${testPlan.scope}</p>
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">2.0</span>
+                            Objectives and Tasks
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">2.1 Objectives</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">${testPlan.objectives || 'Define testing objectives, tasks, responsibilities, and establish communication channels. This plan serves as a vehicle for coordination between testing team and stakeholders.'}</p>
+                            </div>
+                            <div>
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">2.2 Tasks</h5>
+                                <ul class="text-gray-600 dark:text-gray-400 text-sm list-disc list-inside space-y-1">
+                                    <li>Test Case Design and Development</li>
+                                    <li>Test Execution</li>
+                                    <li>Defect Reporting and Tracking</li>
+                                    <li>Test Summary and Reporting</li>
+                                    <li>Post-testing Activities</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
-                            <div class="text-2xl font-bold text-blue-600">${testPlan.metrics?.total_requirements || 0}</div>
-                            <div class="text-sm text-blue-600/70">Requirements</div>
+                    <!-- Section 3.0: Scope -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">3.0</span>
+                            Scope
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">General</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">${testPlan.scope || 'Testing covers new functions, existing interfaces, and integration of all components as defined in the requirements specification.'}</p>
+                            </div>
+                            <div>
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tactics</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Testing will follow a risk-based approach prioritizing critical functionality. Key stakeholders will be notified and scheduled to assist in testing activities.</p>
+                            </div>
                         </div>
-                        <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
-                            <div class="text-2xl font-bold text-green-600">${testPlan.metrics?.total_test_cases || 0}</div>
-                            <div class="text-sm text-green-600/70">Test Cases</div>
+                    </div>
+                    
+                    <!-- Section 4.0: Testing Strategy -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">4.0</span>
+                            Testing Strategy
+                        </h4>
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4.1 Unit Testing</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Individual components tested in isolation. Minimum 80% code coverage required. Developers responsible for unit testing.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4.2 System and Integration Testing</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Full system testing and integration testing to verify component interactions. QA team conducts these tests.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4.3 Performance and Stress Testing</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Load testing, stress testing, and performance benchmarking under expected and peak conditions.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4.4 User Acceptance Testing</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">End-users validate system against business requirements. Sign-off required before production release.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4.5 Batch Testing</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Automated batch jobs and scheduled processes validation.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4.6 Automated Regression Testing</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Automated test suites executed to verify no unintended effects from changes. Critical for continuous delivery.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4.7 Beta Testing</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Limited release to external users for real-world feedback before general availability.</p>
+                            </div>
                         </div>
-                        <div class="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4">
-                            <div class="text-2xl font-bold text-purple-600">${testPlan.metrics?.coverage_percentage || 0}%</div>
-                            <div class="text-sm text-purple-600/70">Coverage</div>
+                    </div>
+                    
+                    <!-- Section 5.0: Hardware Requirements -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">5.0</span>
+                            Hardware Requirements
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Computers</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Development workstations, QA testing environments, and build servers as per project specifications.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Modems/Network</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Network connectivity for distributed testing and integration testing requirements.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 6.0: Environment Requirements -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">6.0</span>
+                            Environment Requirements
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">6.1 Main Frame</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Production-like environment with necessary hardware, communications, and system software. Security level as per enterprise standards.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">6.2 Workstation</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">End-user workstations matching production configuration for UAT and compatibility testing.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 7.0: Test Schedule -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">7.0</span>
+                            Test Schedule
+                        </h4>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <p class="text-gray-600 dark:text-gray-400 text-sm">Timeline aligned with project milestones. Each testing phase (Unit, Integration, System, UAT) scheduled with estimated effort. Resources allocated per testing task.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 8.0: Control Procedures -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">8.0</span>
+                            Control Procedures
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Problem Reporting</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Standard incident logging procedure. Defects tracked with severity, priority, and status. Resolution timeline based on severity levels.</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Change Requests</h5>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">Change management process with sign-off criteria. Impact analysis for affected modules. Regression testing required for changes.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 9.0: Features to be Tested -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">9.0</span>
+                            Features to be Tested
+                        </h4>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <p class="text-gray-600 dark:text-gray-400 text-sm">${testPlan.metrics?.total_requirements || 0} requirements identified for testing. Coverage includes all functional requirements, integration points, and critical business workflows.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 10.0: Features Not to be Tested -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">10.0</span>
+                            Features Not to be Tested
+                        </h4>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <p class="text-gray-600 dark:text-gray-400 text-sm">Third-party components tested by vendors, previously tested stable features (with regression coverage only), and non-functional aspects covered under separate test plans.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 11.0: Resources/Roles & Responsibilities -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">11.0</span>
+                            Resources/Roles & Responsibilities
+                        </h4>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><span class="font-medium text-gray-700 dark:text-gray-300">QA Lead:</span> <span class="text-gray-600 dark:text-gray-400">Overall test coordination and management</span></div>
+                                <div><span class="font-medium text-gray-700 dark:text-gray-300">Test Engineers:</span> <span class="text-gray-600 dark:text-gray-400">Test case design and execution</span></div>
+                                <div><span class="font-medium text-gray-700 dark:text-gray-300">Developers:</span> <span class="text-gray-600 dark:text-gray-400">Unit testing and defect fixes</span></div>
+                                <div><span class="font-medium text-gray-700 dark:text-gray-300">Business Analysts:</span> <span class="text-gray-600 dark:text-gray-400">Requirements clarification and UAT support</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 12.0: Schedules -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">12.0</span>
+                            Schedules
+                        </h4>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">Major Deliverables:</p>
+                            <ul class="text-gray-600 dark:text-gray-400 text-sm list-disc list-inside space-y-1">
+                                <li>Test Plan Document</li>
+                                <li>Test Cases Document</li>
+                                <li>Test Incident Reports</li>
+                                <li>Test Summary Reports</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 13.0: Significantly Impacted Departments -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">13.0</span>
+                            Significantly Impacted Departments (SIDs)
+                        </h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="bg-gray-100 dark:bg-gray-700">
+                                        <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">Department/Business Area</th>
+                                        <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">Bus. Manager</th>
+                                        <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">Tester(s)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b border-gray-200 dark:border-gray-600">
+                                        <td class="py-2 px-3 text-gray-600 dark:text-gray-400">QA Team</td>
+                                        <td class="py-2 px-3 text-gray-600 dark:text-gray-400"><input type="text" placeholder="Enter name" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-24 text-xs"></td>
+                                        <td class="py-2 px-3 text-gray-600 dark:text-gray-400"><input type="text" placeholder="Enter name" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-24 text-xs"></td>
+                                    </tr>
+                                    <tr class="border-b border-gray-200 dark:border-gray-600">
+                                        <td class="py-2 px-3 text-gray-600 dark:text-gray-400">Development</td>
+                                        <td class="py-2 px-3 text-gray-600 dark:text-gray-400"><input type="text" placeholder="Enter name" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-24 text-xs"></td>
+                                        <td class="py-2 px-3 text-gray-600 dark:text-gray-400"><input type="text" placeholder="Enter name" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-24 text-xs"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3 text-gray-600 dark:text-gray-400">Business/Operations</td>
+                                        <td class="py-2 px-3 text-gray-600 dark:text-gray-400"><input type="text" placeholder="Enter name" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-24 text-xs"></td>
+                                        <td class="py-2 px-3 text-gray-600 dark:text-gray-400"><input type="text" placeholder="Enter name" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-24 text-xs"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 14.0: Dependencies -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">14.0</span>
+                            Dependencies
+                        </h4>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <p class="text-gray-600 dark:text-gray-400 text-sm">Test item availability, testing-resource availability, environment readiness, and stakeholder availability for UAT. Dependencies on third-party systems for integration testing.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 15.0: Risks/Assumptions -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">15.0</span>
+                            Risks/Assumptions
+                        </h4>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <p class="text-gray-600 dark:text-gray-400 text-sm">High-risk assumptions identified. Contingency plans for delays in test item delivery (increased night shift), resource constraints (cross-training), and environment issues (fallback environments).</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 16.0: Tools -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">16.0</span>
+                            Tools
+                        </h4>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">Automation Tools: Selenium, Cypress, or similar</p>
+                            <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">Bug Tracking: Jira, Bugzilla, or similar</p>
+                            <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">Test Management: TestRail, Zephyr, or similar</p>
+                            <p class="text-gray-600 dark:text-gray-400 text-sm">Performance Testing: JMeter, LoadRunner, or similar</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 17.0: Approvals -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center">17.0</span>
+                            Approvals
+                        </h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="bg-gray-100 dark:bg-gray-700">
+                                        <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">Name (In Capital Letters)</th>
+                                        <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">Signature</th>
+                                        <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b border-gray-200 dark:border-gray-600">
+                                        <td class="py-2 px-3"><input type="text" placeholder="ENTER NAME" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                        <td class="py-2 px-3"><input type="text" placeholder="SIGNATURE" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                        <td class="py-2 px-3"><input type="date" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                    </tr>
+                                    <tr class="border-b border-gray-200 dark:border-gray-600">
+                                        <td class="py-2 px-3"><input type="text" placeholder="ENTER NAME" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                        <td class="py-2 px-3"><input type="text" placeholder="SIGNATURE" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                        <td class="py-2 px-3"><input type="date" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                    </tr>
+                                    <tr class="border-b border-gray-200 dark:border-gray-600">
+                                        <td class="py-2 px-3"><input type="text" placeholder="ENTER NAME" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                        <td class="py-2 px-3"><input type="text" placeholder="SIGNATURE" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                        <td class="py-2 px-3"><input type="date" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3"><input type="text" placeholder="ENTER NAME" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                        <td class="py-2 px-3"><input type="text" placeholder="SIGNATURE" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                        <td class="py-2 px-3"><input type="date" class="bg-transparent border-b border-gray-300 dark:border-gray-600 w-full text-xs"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -781,37 +1786,215 @@
 
             const html = `
                 <div class="space-y-6">
+                    <!-- Header with Download Options -->
                     <div class="bg-gradient-to-r from-primary-500 to-primary-700 rounded-xl p-6 text-white">
-                        <h3 class="text-xl font-bold mb-2">Test Strategy</h3>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-xl font-bold">Test Strategy Document</h3>
+                            <div class="flex items-center gap-2">
+                                <button onclick="downloadDocument('strategy', 'md')" class="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    MD
+                                </button>
+                                <button onclick="downloadDocument('strategy', 'doc')" class="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    DOC
+                                </button>
+                                <button onclick="downloadDocument('strategy', 'pdf')" class="px-3 py-1.5 bg-red-500/50 hover:bg-red-500/70 rounded-lg text-sm flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    PDF
+                                </button>
+                            </div>
+                        </div>
                         <p class="text-primary-100">Strategic approach to validating ${strategy.scope?.toLowerCase() || 'requirements'}</p>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                            <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">🎯 Objectives</h4>
-                            <p class="text-gray-600 dark:text-gray-300 text-sm">${strategy.objectives}</p>
-                        </div>
-                        
-                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                            <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">📐 Scope</h4>
-                            <p class="text-gray-600 dark:text-gray-300 text-sm">${strategy.scope}</p>
-                        </div>
-                        
-                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                            <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">🔧 Approach</h4>
-                            <p class="text-gray-600 dark:text-gray-300 text-sm">${strategy.approach}</p>
-                        </div>
-                        
-                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                            <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">⚡ Priority Focus</h4>
-                            <p class="text-gray-600 dark:text-gray-300 text-sm">${strategy.priority_focus}</p>
+                    <!-- Section 1: Scope and Overview -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400">1</span>
+                            Scope and Overview
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Objectives</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">${strategy.objectives || 'Define clear testing objectives aligned with project goals'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Scope</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">${strategy.scope || 'Define boundaries of testing activities'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Approval Authority</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Business Team, Project Management, Development Lead</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Testing Activities</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Unit, Integration, System, Acceptance Testing</p>
+                            </div>
                         </div>
                     </div>
                     
+                    <!-- Section 2: Testing Methodology -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">🧪 Test Types Covered</h4>
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center text-green-600 dark:text-green-400">2</span>
+                            Testing Methodology
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Testing Levels</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">${strategy.levels || 'Unit Testing, Integration Testing, System Testing, UAT'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Team Roles & Responsibilities</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">QA Lead, Test Engineers, Developers, Business Analysts</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Change Management</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Process for handling Change Requests (CR) and scope modifications</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Defect Management</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Defect triage, re-testing, regression testing, and sign-off procedures</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 3: Test Environment -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400">3</span>
+                            Test Environment
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Environment Setup</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">${strategy.environments || 'Development, QA, Staging environments as required'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Test Data Requirements</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Data preparation, masking, and validation procedures</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Backup & Restore</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Test data backup strategy and recovery procedures</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Environment Count</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Minimum required environments based on project complexity</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 4: Testing Tools -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-amber-100 dark:bg-amber-900 rounded-lg flex items-center justify-center text-amber-600 dark:text-amber-400">4</span>
+                            Testing Tools
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Test Management</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">${strategy.test_management_tool || 'Test case management and traceability tools'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Automation Tools</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">${strategy.automation_tool || 'Selenium, Cypress, Playwright, or similar'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Performance & Load</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">JMeter, LoadRunner, or similar for load testing</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Security Testing</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">OWASP ZAP, Burp Suite, or similar security tools</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 5: Release Control -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400">5</span>
+                            Release Control
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Release Management</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Version-controlled release planning with history tracking</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Test Execution Strategy</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">${strategy.approach || 'Structured test execution based on release cycles'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Regression Testing</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Automated regression suite execution per release</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Sign-off Criteria</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Pass rates, critical defect closure, and coverage thresholds</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 6: Risk Analysis -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center text-orange-600 dark:text-orange-400">6</span>
+                            Risk Analysis
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Identified Risks</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">${strategy.risks || 'Schedule constraints, resource availability, environment dependencies'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Mitigation Strategies</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Proactive risk monitoring and contingency planning</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Contingency Plan</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Fallback strategies for high-impact risk scenarios</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Priority Focus</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">${strategy.priority_focus || 'Critical path testing and high-risk feature coverage'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 7: Review and Approvals -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span class="w-8 h-8 bg-teal-100 dark:bg-teal-900 rounded-lg flex items-center justify-center text-teal-600 dark:text-teal-400">7</span>
+                            Review and Approvals
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Reviewers</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">System Administration, Project Management, Development, Business Teams</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Approval Sign-off</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Document approval with name, date, and comments</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Review Summary</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Tracked changes and improvement recommendations</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Process Updates</p>
+                                <p class="text-gray-700 dark:text-gray-300 text-sm">Continuous improvement based on review feedback</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Test Types Covered -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">🧪 Test Types Covered</h4>
                         <div class="flex flex-wrap gap-2">
-                            ${(strategy.test_types_covered || []).map(type => 
+                            ${(strategy.test_types_covered || ['Functional Testing', 'Regression Testing', 'Integration Testing', 'Performance Testing', 'Security Testing', 'User Acceptance Testing']).map(type => 
                                 `<span class="px-3 py-1 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded-full text-sm">${type}</span>`
                             ).join('')}
                         </div>
@@ -879,7 +2062,33 @@
             const container = document.getElementById('testCasesList');
             
             let filteredCases = testCases;
-            if (appState.currentFilter !== 'all') {
+            
+            // Handle RTM stat card filters
+            if (appState.rtmFilter) {
+                const requirements = appState.generatedArtifacts?.normalized_requirements || [];
+                const ambiguousReqIds = new Set(requirements.filter(r => r.ambiguity?.is_ambiguous).map(r => r.requirement_id));
+                
+                switch (appState.rtmFilter) {
+                    case 'rtm-requirements':
+                        // Show test cases linked to requirements (all test cases)
+                        filteredCases = testCases;
+                        break;
+                    case 'rtm-testcases':
+                        // Show all test cases
+                        filteredCases = testCases;
+                        break;
+                    case 'rtm-coverage':
+                        // Show test cases with low coverage (could be enhanced to show specific coverage)
+                        filteredCases = testCases;
+                        break;
+                    case 'rtm-ambiguous':
+                        // Show test cases linked to ambiguous requirements
+                        filteredCases = testCases.filter(tc => ambiguousReqIds.has(tc.mapped_requirement_id));
+                        break;
+                    default:
+                        filteredCases = testCases;
+                }
+            } else if (appState.currentFilter !== 'all') {
                 filteredCases = testCases.filter(tc => 
                     tc.priority === appState.currentFilter || 
                     tc.test_type === appState.currentFilter ||
@@ -1065,6 +2274,111 @@
                     </tr>
                 `;
             }).join('');
+
+            // Render RTM Heatmap
+            renderRTMHeatmap(requirements, testCases);
+        }
+
+        // Toggle between Table and Heatmap views
+        function toggleRTMView() {
+            const tableContainer = document.getElementById('rtmTableContainer');
+            const heatmap = document.getElementById('rtmBack');
+            const btn = document.getElementById('rtmFlipBtn');
+            
+            if (tableContainer.classList.contains('hidden')) {
+                tableContainer.classList.remove('hidden');
+                heatmap.classList.add('hidden');
+                btn.textContent = 'Show Heatmap ↔';
+            } else {
+                tableContainer.classList.add('hidden');
+                heatmap.classList.remove('hidden');
+                btn.textContent = 'Show Table ↔';
+            }
+        }
+
+        // Filter RTM table by priority (dropdown)
+        function filterRTMPriority(priority) {
+            appState.rtmPriorityFilter = priority;
+            
+            const rows = document.querySelectorAll('#rtmTableBody tr');
+            rows.forEach(row => {
+                const priorityCell = row.querySelector('td:nth-child(4)');
+                const rowPriority = priorityCell?.textContent.trim();
+                if (priority === 'all' || rowPriority === priority) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+        }
+
+        // Render RTM Heatmap
+        function renderRTMHeatmap(requirements, testCases) {
+            const heatmapContainer = document.getElementById('rtmHeatmap');
+            if (!heatmapContainer) return;
+
+            const heatmapHeader = document.getElementById('heatmapHeader');
+            const heatmapBody = document.getElementById('rtmHeatmapBody');
+
+            // Test type colors for heatmap
+            const testTypeColors = {
+                'Positive': 'bg-green-500',
+                'Negative': 'bg-red-500',
+                'Edge': 'bg-yellow-500',
+                'Boundary': 'bg-blue-500',
+                'Security': 'bg-indigo-500',
+                'API': 'bg-pink-500'
+            };
+
+            // Get all unique test case IDs sorted
+            const allTcIds = [...new Set(testCases.map(tc => tc.test_case_id))].sort((a, b) => {
+                // Extract numeric part for sorting
+                const numA = parseInt(a.replace(/\D/g, '')) || 0;
+                const numB = parseInt(b.replace(/\D/g, '')) || 0;
+                return numA - numB;
+            });
+
+            // Build header row with short TC labels (TC1, TC2, etc.)
+            let headerHtml = '<th class="text-left py-2 px-2 font-medium text-gray-600 dark:text-gray-400 sticky left-0 bg-gray-50 dark:bg-gray-700/50 z-10 min-w-[60px]">Req</th>';
+            allTcIds.forEach((tcId, index) => {
+                headerHtml += `<th class="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 text-[10px] min-w-[24px]">TC${index + 1}</th>`;
+            });
+            heatmapHeader.innerHTML = headerHtml;
+
+            // Build body rows with requirements
+            let bodyHtml = '';
+            requirements.forEach(req => {
+                const reqTCs = testCases.filter(tc => tc.mapped_requirement_id === req.requirement_id);
+                const reqTCMap = new Map(reqTCs.map(tc => [tc.test_case_id, tc]));
+
+                let rowHtml = `<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">`;
+                rowHtml += `<td class="py-1 px-2 font-medium text-primary-600 dark:text-primary-400 sticky left-0 bg-white dark:bg-gray-800 z-10 text-xs">${req.requirement_id}</td>`;
+
+                allTcIds.forEach((tcId, index) => {
+                    const tc = reqTCMap.get(tcId);
+                    if (tc) {
+                        const colorClass = testTypeColors[tc.test_type] || 'bg-gray-500';
+                        // Show actual TC ID on hover with data attribute and title
+                        rowHtml += `<td class="py-1 px-0.5 text-center">
+                            <span class="inline-block w-4 h-4 rounded-sm ${colorClass} cursor-pointer hover:opacity-80 transition-opacity group relative" 
+                                  data-tc-id="${tc.test_case_id}" 
+                                  onclick="highlightTestCase('${tc.test_case_id}')">
+                                <!-- Tooltip on hover -->
+                                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-20">${tc.test_case_id}</span>
+                            </span>
+                        </td>`;
+                    } else {
+                        rowHtml += `<td class="py-1 px-0.5 text-center">
+                            <span class="inline-block w-4 h-4 rounded-sm bg-gray-100 dark:bg-gray-700"></span>
+                        </td>`;
+                    }
+                });
+
+                rowHtml += `</tr>`;
+                bodyHtml += rowHtml;
+            });
+
+            heatmapBody.innerHTML = bodyHtml;
         }
 
         // Export Artifacts
@@ -1083,6 +2397,399 @@
             a.click();
             URL.revokeObjectURL(url);
             showToast('Artifacts exported!', 'success');
+        }
+
+        // Download Document (Test Plan/Test Strategy in MD/DOC/PDF)
+        function downloadDocument(type, format) {
+            if (!appState.generatedArtifacts) {
+                showToast('No artifacts to download', 'warning');
+                return;
+            }
+            
+            let content = '';
+            let filename = '';
+            const date = new Date().toLocaleDateString();
+            
+            if (type === 'testplan') {
+                const tp = appState.generatedArtifacts;
+                content = generateTestPlanMD(tp);
+                filename = `test-plan-${new Date().toISOString().slice(0,10)}`;
+            } else {
+                const ts = appState.generatedArtifacts.test_plan?.test_strategy || {};
+                content = generateTestStrategyMD(ts);
+                filename = `test-strategy-${new Date().toISOString().slice(0,10)}`;
+            }
+            
+            if (format === 'md') {
+                downloadFile(content, `${filename}.md`, 'text/markdown');
+                showToast(`${type === 'testplan' ? 'Test Plan' : 'Test Strategy'} downloaded as MD`, 'success');
+            } else if (format === 'doc') {
+                // Convert MD to HTML for DOC download
+                const htmlContent = mdToHtml(content);
+                downloadFile(htmlContent, `${filename}.html`, 'text/html');
+                showToast(`${type === 'testplan' ? 'Test Plan' : 'Test Strategy'} downloaded as HTML (DOC)`, 'success');
+            } else if (format === 'pdf') {
+                // For PDF, we'll use print functionality
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>${type === 'testplan' ? 'Test Plan' : 'Test Strategy'}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+                            h1 { color: #333; border-bottom: 2px solid #6366f1; padding-bottom: 10px; }
+                            h2 { color: #555; margin-top: 30px; }
+                            h3 { color: #666; }
+                            p, li { color: #444; line-height: 1.6; }
+                            .signature-block { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 20px; }
+                            .signature-line { display: flex; justify-content: space-between; margin-top: 30px; }
+                            .signature-field { width: 30%; }
+                            .signature-field span { display: block; border-bottom: 1px solid #333; margin-top: 40px; font-size: 12px; }
+                            @media print { body { padding: 20px; } }
+                        </style>
+                    </head>
+                    <body>${mdToHtml(content)}</body>
+                    </html>
+                `);
+                printWindow.document.close();
+                setTimeout(() => {
+                    printWindow.print();
+                }, 500);
+                showToast(`${type === 'testplan' ? 'Test Plan' : 'Test Strategy'} PDF opened for printing`, 'success');
+            }
+        }
+        
+        function generateTestPlanMD(tp) {
+            return `# TEST PLAN
+
+**Plan ID:** ${tp.plan_id}  
+**Version:** ${tp.version}  
+**Date:** ${new Date().toLocaleDateString()}  
+**Status:** Draft
+
+---
+
+## 1.0 INTRODUCTION
+
+This document provides a comprehensive summary of the product being tested and outlines all functions at a high level. The test plan defines the scope, objectives, approach, and resources required for successful testing of the system.
+
+## 2.0 OBJECTIVES AND TASKS
+
+### 2.1 Objectives
+
+${tp.objectives || 'Define testing objectives, tasks, responsibilities, and establish communication channels. This plan serves as a vehicle for coordination between testing team and stakeholders.'}
+
+### 2.2 Tasks
+
+- Test Case Design and Development
+- Test Execution
+- Defect Reporting and Tracking
+- Test Summary and Reporting
+- Post-testing Activities
+
+## 3.0 SCOPE
+
+### General
+
+${tp.scope || 'Testing covers new functions, existing interfaces, and integration of all components as defined in the requirements specification.'}
+
+### Tactics
+
+Testing will follow a risk-based approach prioritizing critical functionality. Key stakeholders will be notified and scheduled to assist in testing activities.
+
+## 4.0 TESTING STRATEGY
+
+### 4.1 Unit Testing
+
+Individual components tested in isolation. Minimum 80% code coverage required. Developers responsible for unit testing.
+
+### 4.2 System and Integration Testing
+
+Full system testing and integration testing to verify component interactions. QA team conducts these tests.
+
+### 4.3 Performance and Stress Testing
+
+Load testing, stress testing, and performance benchmarking under expected and peak conditions.
+
+### 4.4 User Acceptance Testing
+
+End-users validate system against business requirements. Sign-off required before production release.
+
+### 4.5 Batch Testing
+
+Automated batch jobs and scheduled processes validation.
+
+### 4.6 Automated Regression Testing
+
+Automated test suites executed to verify no unintended effects from changes. Critical for continuous delivery.
+
+### 4.7 Beta Testing
+
+Limited release to external users for real-world feedback before general availability.
+
+## 5.0 HARDWARE REQUIREMENTS
+
+- **Computers:** Development workstations, QA testing environments, and build servers as per project specifications.
+- **Modems/Network:** Network connectivity for distributed testing and integration testing requirements.
+
+## 6.0 ENVIRONMENT REQUIREMENTS
+
+### 6.1 Main Frame
+
+Production-like environment with necessary hardware, communications, and system software. Security level as per enterprise standards.
+
+### 6.2 Workstation
+
+End-user workstations matching production configuration for UAT and compatibility testing.
+
+## 7.0 TEST SCHEDULE
+
+Timeline aligned with project milestones. Each testing phase (Unit, Integration, System, UAT) scheduled with estimated effort. Resources allocated per testing task.
+
+## 8.0 CONTROL PROCEDURES
+
+### Problem Reporting
+
+Standard incident logging procedure. Defects tracked with severity, priority, and status. Resolution timeline based on severity levels.
+
+### Change Requests
+
+Change management process with sign-off criteria. Impact analysis for affected modules. Regression testing required for changes.
+
+## 9.0 FEATURES TO BE TESTED
+
+${tp.metrics?.total_requirements || 0} requirements identified for testing. Coverage includes all functional requirements, integration points, and critical business workflows.
+
+## 10.0 FEATURES NOT TO BE TESTED
+
+Third-party components tested by vendors, previously tested stable features (with regression coverage only), and non-functional aspects covered under separate test plans.
+
+## 11.0 RESOURCES/ROLES & RESPONSIBILITIES
+
+| Role | Responsibility |
+|------|---------------|
+| QA Lead | Overall test coordination and management |
+| Test Engineers | Test case design and execution |
+| Developers | Unit testing and defect fixes |
+| Business Analysts | Requirements clarification and UAT support |
+
+## 12.0 SCHEDULES
+
+**Major Deliverables:**
+- Test Plan Document
+- Test Cases Document
+- Test Incident Reports
+- Test Summary Reports
+
+## 13.0 SIGNIFICANTLY IMPACTED DEPARTMENTS (SIDs)
+
+| Department/Business Area | Bus. Manager | Tester(s) |
+|-------------------------|--------------|-----------|
+| QA Team | [ENTER NAME] | [ENTER NAME] |
+| Development | [ENTER NAME] | [ENTER NAME] |
+| Business/Operations | [ENTER NAME] | [ENTER NAME] |
+
+## 14.0 DEPENDENCIES
+
+Test item availability, testing-resource availability, environment readiness, and stakeholder availability for UAT. Dependencies on third-party systems for integration testing.
+
+## 15.0 RISKS/ASSUMPTIONS
+
+High-risk assumptions identified. Contingency plans for delays in test item delivery (increased night shift), resource constraints (cross-training), and environment issues (fallback environments).
+
+## 16.0 TOOLS
+
+- **Automation Tools:** Selenium, Cypress, or similar
+- **Bug Tracking:** Jira, Bugzilla, or similar
+- **Test Management:** TestRail, Zephyr, or similar
+- **Performance Testing:** JMeter, LoadRunner, or similar
+
+## 17.0 APPROVALS
+
+| Name (In Capital Letters) | Signature | Date |
+|--------------------------|-----------|------|
+| [ENTER NAME] | _______________________ | __________ |
+| [ENTER NAME] | _______________________ | __________ |
+| [ENTER NAME] | _______________________ | __________ |
+| [ENTER NAME] | _______________________ | __________ |
+
+---
+
+*Document generated by AI Test Case Generator*
+`;
+        }
+        
+        function generateTestStrategyMD(strategy) {
+            return `# TEST STRATEGY DOCUMENT
+
+**Date:** ${new Date().toLocaleDateString()}  
+**Version:** 1.0
+
+---
+
+## 1. SCOPE AND OVERVIEW
+
+### Objectives
+
+${strategy.objectives || 'Define clear testing objectives aligned with project goals'}
+
+### Scope
+
+${strategy.scope || 'Define boundaries of testing activities'}
+
+### Approval Authority
+
+Business Team, Project Management, Development Lead
+
+### Testing Activities
+
+Unit Testing, Integration Testing, System Testing, Acceptance Testing
+
+## 2. TESTING METHODOLOGY
+
+### Testing Levels
+
+${strategy.levels || 'Unit Testing, Integration Testing, System Testing, UAT'}
+
+### Team Roles & Responsibilities
+
+QA Lead, Test Engineers, Developers, Business Analysts
+
+### Change Management
+
+Process for handling Change Requests (CR) and scope modifications
+
+### Defect Management
+
+Defect triage, re-testing, regression testing, and sign-off procedures
+
+## 3. TEST ENVIRONMENT
+
+### Environment Setup
+
+${strategy.environments || 'Development, QA, Staging environments as required'}
+
+### Test Data Requirements
+
+Data preparation, masking, and validation procedures
+
+### Backup & Restore
+
+Test data backup strategy and recovery procedures
+
+### Environment Count
+
+Minimum required environments based on project complexity
+
+## 4. TESTING TOOLS
+
+### Test Management
+
+${strategy.test_management_tool || 'Test case management and traceability tools'}
+
+### Automation Tools
+
+${strategy.automation_tool || 'Selenium, Cypress, Playwright, or similar'}
+
+### Performance & Load
+
+${strategy.performance_tool || 'JMeter, LoadRunner, or similar for load testing'}
+
+### Security Testing
+
+${strategy.security_tool || 'OWASP ZAP, Burp Suite, or similar security tools'}
+
+## 5. RELEASE CONTROL
+
+### Release Management
+
+Version-controlled release planning with history tracking
+
+### Test Execution Strategy
+
+${strategy.approach || 'Structured test execution based on release cycles'}
+
+### Regression Testing
+
+Automated regression suite execution per release
+
+### Sign-off Criteria
+
+Pass rates, critical defect closure, and coverage thresholds
+
+## 6. RISK ANALYSIS
+
+### Identified Risks
+
+${strategy.risks || 'Schedule constraints, resource availability, environment dependencies'}
+
+### Mitigation Strategies
+
+Proactive risk monitoring and contingency planning
+
+### Contingency Plan
+
+Fallback strategies for high-impact risk scenarios
+
+### Priority Focus
+
+${strategy.priority_focus || 'Critical path testing and high-risk feature coverage'}
+
+## 7. REVIEW AND APPROVALS
+
+### Reviewers
+
+System Administration, Project Management, Development, Business Teams
+
+### Approval Sign-off
+
+Document approval with name, date, and comments
+
+### Review Summary
+
+Tracked changes and improvement recommendations
+
+### Process Updates
+
+Continuous improvement based on review feedback
+
+---
+
+*Document generated by AI Test Case Generator*
+`;
+        }
+        
+        function mdToHtml(md) {
+            return md
+                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                .replace(/^#### (.*$)/gm, '<h4>$1</h4>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/^\- (.*$)/gm, '<li>$1</li>')
+                .replace(/^\| (.*) \|$/gm, (match, content) => {
+                    const cells = content.split(' | ').map(c => `<td>${c.trim()}</td>`).join('');
+                    return `<tr>${cells}</tr>`;
+                })
+                .replace(/^\|---/gm, '')
+                .replace(/^\s*\n/gm, '</p><p>')
+                .replace(/^([^<\n]+)$/gm, '<p>$1</p>')
+                .replace(/<p><\/p>/g, '')
+                .replace(/<h1>/g, '<h1 style="color: #333; border-bottom: 2px solid #6366f1; padding-bottom: 10px;">')
+                .replace(/<h2>/g, '<h2 style="color: #555; margin-top: 25px;">')
+                .replace(/---\n/g, '<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">')
+                .replace(/`([^`]+)`/g, '<code style="background: #f4f4f4; padding: 2px 6px; border-radius: 3px;">$1</code>');
+        }
+        
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         // Initialize
