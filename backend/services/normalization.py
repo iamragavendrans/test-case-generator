@@ -115,17 +115,33 @@ class NormalizationService:
             },
         )
 
+    # Words that begin a conditional clause, not the actor
+    _CONDITIONAL_STARTERS = re.compile(
+        r'^(if|when|unless|provided that|given that|after|before|once)\b',
+        re.IGNORECASE,
+    )
+
     def _extract_actor(self, text: str) -> str:
         for modal in ['shall', 'must', 'should', 'will']:
-            match = re.match(
-                rf'^([A-Za-z][A-Za-z0-9\s]*?)\s+{modal}\b',
-                text,
-                re.IGNORECASE,
-            )
-            if match:
-                actor = match.group(1).strip()
-                # Capitalize first letter, preserve rest
-                return actor[0].upper() + actor[1:] if actor else ''
+            # Find the modal anywhere in the text (not just at the start)
+            m = re.search(rf'\b{modal}\b', text, re.IGNORECASE)
+            if not m:
+                continue
+            # Everything before the modal is a candidate for the actor phrase
+            before = text[:m.start()].strip().rstrip(',')
+            if not before:
+                continue
+            # If there's a comma, take the part AFTER the comma (conditional clause pattern:
+            # "If X, the system shall…" → actor is "the system")
+            if ',' in before:
+                before = before.split(',')[-1].strip()
+            # Skip if what remains starts with a conditional word
+            if self._CONDITIONAL_STARTERS.match(before):
+                continue
+            # Strip leading articles for cleanliness
+            actor = re.sub(r'^(the|a|an)\s+', '', before, flags=re.IGNORECASE).strip()
+            if actor:
+                return actor[0].upper() + actor[1:]
         return ''
 
     def _extract_action(self, text: str) -> str:

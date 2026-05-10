@@ -17,6 +17,7 @@ Environment variables:
 import json
 import logging
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -184,8 +185,6 @@ def _validate_and_clean(raw: str) -> list:
 
     return cleaned
 
-
-import re  # needed by _validate_and_clean
 
 
 # ── Public interface ──────────────────────────────────────────────────────────

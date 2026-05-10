@@ -17,15 +17,23 @@ class RequirementClass(Enum):
 
 _KEYWORD_RULES: Dict[RequirementClass, List[str]] = {
     RequirementClass.SECURITY: [
-        'encrypt', 'decrypt', 'authentication', 'authenticate', 'password', 'token',
+        'encrypt', 'encrypted', 'encryption', 'decrypt', 'decrypted',
+        'authentication', 'authenticate', 'password', 'token',
         'ssl', 'tls', 'aes', 'aes-256', 'hash', 'unauthorized', 'prevent unauthorized',
         'sensitive', 'certificate', 'access control', 'privilege', 'injection',
         'xss', 'csrf', 'sanitize', 'unauthorized access',
+        'pci-dss', 'pci dss', 'pci', 'compliance', 'comply', 'complies',
+        'secure', 'security', 'at rest', 'in transit', 'data protection',
+        'otp', 'one-time password', 'pin',
     ],
     RequirementClass.PERFORMANCE: [
         'millisecond', 'milliseconds', 'ms', 'second', 'seconds', 'response time',
-        'latency', 'throughput', 'within', 'uptime', 'sla', 'load', 'concurrently',
+        'latency', 'throughput', 'uptime', 'sla', 'load', 'concurrently',
         'performance', 'speed', 'bandwidth', 'availability', '99.9%',
+        'immediately', 'instant', 'real-time', 'real time', 'no delay', 'without delay',
+        'not exceed', 'must not exceed', 'under normal load', 'processing time',
+        'concurrent users', 'concurrent active', 'tps', 'requests per second',
+        'within', 'timeout', 'delay',
     ],
     RequirementClass.VALIDATION: [
         'validate', 'validation', 'format', 'length', 'range', 'sanitize',
@@ -33,7 +41,7 @@ _KEYWORD_RULES: Dict[RequirementClass, List[str]] = {
         'invalid input', 'input must', 'must be',
     ],
     RequirementClass.API_BEHAVIOR: [
-        'endpoint', 'rest', 'http', 'https', 'get /', 'post /', 'put /', 'delete /',
+        'endpoint', 'restful', 'rest api', 'http', 'https', 'get /', 'post /', 'put /', 'delete /',
         'patch /', '/users', '/api', 'api shall', 'api must', 'request', 'response',
         'status code', 'json', 'payload',
     ],
@@ -88,7 +96,8 @@ class ClassificationService:
             (v for k, v in scores.items() if k != RequirementClass.FUNCTIONAL),
             default=0,
         )
-        scores[RequirementClass.FUNCTIONAL] = 0.4 if non_functional_max > 0 else 0.7
+        # 0.2 ensures even a single specific-class keyword hit (0.25) outranks FUNCTIONAL
+        scores[RequirementClass.FUNCTIONAL] = 0.2 if non_functional_max > 0 else 0.7
 
         # Prefer specific classes over FUNCTIONAL on equal score (FUNCTIONAL is fallback)
         primary = max(scores, key=lambda c: (scores[c], c != RequirementClass.FUNCTIONAL))

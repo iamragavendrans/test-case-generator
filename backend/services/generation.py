@@ -94,7 +94,7 @@ class TestCaseGenerationService:
         # Generate type-specific tests
         types_lower = [t.lower() for t in types]
 
-        if any(t in types_lower for t in ['performance', 'api behavior', 'api_behavior']):
+        if any(t in types_lower for t in ['api behavior', 'api_behavior']):
             test_cases.append(TestCase(
                 requirement_id=req_id,
                 test_type='Boundary',
@@ -109,6 +109,42 @@ class TestCaseGenerationService:
                 preconditions=['System is in a valid state'],
                 rules_applied=['template:boundary-TC-003', 'rule:boundary-analysis'],
                 template_id='boundary-TC-003',
+            ))
+
+        if any(t in types_lower for t in ['performance']):
+            test_cases.append(TestCase(
+                requirement_id=req_id,
+                test_type='Performance',
+                title=f"{actor} {action} when system is under normal load, expecting response within SLA",
+                steps=[
+                    {'step_number': 1, 'action': 'Configure load testing tool with expected concurrent users'},
+                    {'step_number': 2, 'action': f'{actor} performs: {action} under sustained load'},
+                    {'step_number': 3, 'action': 'Capture response time, throughput, and error rate metrics'},
+                    {'step_number': 4, 'action': 'Verify all metrics are within defined SLA thresholds'},
+                ],
+                test_data={'inputs': {'actor': actor, 'load_profile': 'normal', 'concurrent_users': 'as per requirement'}},
+                expected_result='System meets all performance SLA targets without degradation',
+                preconditions=['Load testing environment is configured', 'Monitoring tools are active'],
+                rules_applied=['template:performance-TC-006', 'rule:performance-load-test'],
+                template_id='performance-TC-006',
+            ))
+
+        if any(t in types_lower for t in ['concurrency']):
+            test_cases.append(TestCase(
+                requirement_id=req_id,
+                test_type='Concurrency',
+                title=f"{actor} {action} when multiple simultaneous requests are made, expecting consistent results",
+                steps=[
+                    {'step_number': 1, 'action': 'Set up concurrent test sessions'},
+                    {'step_number': 2, 'action': f'Trigger {action} from multiple sessions simultaneously'},
+                    {'step_number': 3, 'action': 'Verify data consistency across all sessions'},
+                    {'step_number': 4, 'action': 'Check for race conditions or deadlocks'},
+                ],
+                test_data={'inputs': {'actor': actor, 'concurrent_sessions': 'multiple', 'action': action}},
+                expected_result='All concurrent requests processed correctly without data corruption or race conditions',
+                preconditions=['Multiple test sessions configured', 'Shared resources are available'],
+                rules_applied=['template:concurrency-TC-007', 'rule:concurrency-test'],
+                template_id='concurrency-TC-007',
             ))
 
         if any(t in types_lower for t in ['security']):

@@ -75,7 +75,7 @@ class GenerateRequest(BaseModel):
 
 
 class BatchRequest(BaseModel):
-    requirements: List[str] = Field(..., min_items=1)
+    requirements: List[str] = Field(..., min_length=1)
     format_hint: Optional[str] = None
     use_llm: bool = True
 
@@ -271,9 +271,21 @@ def batch(req: BatchRequest):
     all_tcs = [tc for res in results for tc in res["test_cases"]]
     llm_used_any = any(res["audit_log"].get("llm_used") for res in results)
 
+    behaviors = [
+        {"behavior_id": f"{r['requirement_id']}-B01", "requirement_id": r["requirement_id"]}
+        for r in all_normalized
+    ]
+    coverage_result = _coverage.calculate(all_tcs, all_normalized, behaviors)
+
     return {
         "normalized_requirements": all_normalized,
         "test_cases": all_tcs,
+        "coverage_summary": {
+            "overall_coverage": coverage_result.overall_coverage,
+            "requirement_coverage": coverage_result.requirement_coverage,
+            "gaps_detected": coverage_result.gaps_detected,
+            "dimension_coverage": coverage_result.dimension_coverage,
+        },
         "audit_log": {
             "generation_timestamp": datetime.now(timezone.utc).isoformat(),
             "generator_version": "2.0.0",

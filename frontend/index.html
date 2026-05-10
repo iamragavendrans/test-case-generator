@@ -335,6 +335,13 @@
                                     <button onclick="filterTestCases('Manual')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="Manual">Manual</button>
                                     <button onclick="filterTestCases('Automation')" class="filter-btn px-3 py-1.5 rounded-lg text-xs transition-colors bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500" data-filter="Automation">Automation</button>
                                 </div>
+                                <!-- Skeleton Download -->
+                                <div class="ml-auto">
+                                    <button onclick="downloadSkeleton()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                                        Download pytest Skeleton
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div id="testCasesList" class="space-y-3"></div>
@@ -475,7 +482,8 @@
         let appState = {
             rawRequirements: '',
             analyzedRequirements: [],
-            backendTestCases: [],       // test cases returned by the backend API
+            backendTestCases: [],
+            coverageSummary: null,
             selectedRequirementIds: new Set(),
             generatedArtifacts: null,
             currentFilter: 'all',
@@ -668,15 +676,16 @@
                 if (!resp.ok) throw new Error(`Backend returned ${resp.status}`);
                 const data = await resp.json();
 
-                // Normalise priorities for frontend colour map
+                // Normalise test case priorities to P0/P1/P2 for colour map.
+                // Do NOT normalise priority_hint on requirements — the filter
+                // dropdown uses "High"/"Medium"/"Low" to match those values.
                 data.test_cases = (data.test_cases || []).map(tc => ({
                     ...tc,
                     priority: normalizePriority(tc.priority)
                 }));
-                data.normalized_requirements = (data.normalized_requirements || []).map(r => ({
-                    ...r,
-                    priority_hint: normalizePriority(r.priority_hint)
-                }));
+
+                // Store backend coverage for display in RTM
+                appState.coverageSummary = data.coverage_summary || null;
 
                 data.test_plan = generateTestPlan(data.normalized_requirements, data.test_cases);
                 return data;
@@ -1204,8 +1213,6 @@
             };
         }
 
-        function lowerText(text) { return text.toLowerCase(); }
-
         function renderRequirements(requirements) {
             const container = document.getElementById('requirementsList');
             
@@ -1387,10 +1394,18 @@
                 b.classList.remove('border-primary-500', 'text-primary-600');
                 b.classList.add('border-transparent', 'text-gray-600', 'dark:text-gray-400');
             });
-            
+
             document.getElementById(`artifact-${tabName}`).classList.remove('hidden');
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('border-primary-500', 'text-primary-600');
             document.querySelector(`[data-tab="${tabName}"]`).classList.remove('border-transparent', 'text-gray-600', 'dark:text-gray-400');
+
+            // Re-apply active filter so it persists across tab switches
+            if (tabName === 'testcases' && appState.currentFilter !== 'all') {
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    const isActive = btn.dataset.filter === appState.currentFilter;
+                    btn.classList.toggle('active', isActive);
+                });
+            }
         }
 
         // Filter Test Cases
@@ -2207,10 +2222,24 @@
             const rtm = data.test_plan?.rtm || [];
             const metrics = data.test_plan?.metrics || {};
 
+            if (requirements.length === 0) {
+                document.getElementById('rtmReqCount').textContent = '0';
+                document.getElementById('rtmTcCount').textContent = '0';
+                document.getElementById('rtmCoverage').textContent = '—';
+                document.getElementById('rtmAmbig').textContent = '0';
+                return;
+            }
+
+            // Prefer backend coverage_summary over client-side calculation
+            const backendCov = appState.coverageSummary;
+            const coveragePct = backendCov
+                ? Math.round(backendCov.overall_coverage * 100)
+                : (metrics.coverage_percentage || 0);
+
             // Update stats
             document.getElementById('rtmReqCount').textContent = requirements.length;
             document.getElementById('rtmTcCount').textContent = testCases.length;
-            document.getElementById('rtmCoverage').textContent = (metrics.coverage_percentage || 0) + '%';
+            document.getElementById('rtmCoverage').textContent = coveragePct + '%';
             document.getElementById('rtmAmbig').textContent = requirements.filter(r => r.ambiguity?.is_ambiguous).length;
 
             // Render charts
@@ -2810,6 +2839,34 @@ Continuous improvement based on review feedback
             a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        // Download pytest skeleton files from the /skeleton endpoint
+        async function downloadSkeleton() {
+            if (!appState.generatedArtifacts) {
+                showToast('Generate artifacts first', 'warning');
+                return;
+            }
+            showToast('Requesting skeleton files…', 'info');
+            try {
+                const resp = await fetch(`${API_BASE}/skeleton`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pipeline_output: appState.generatedArtifacts })
+                });
+                if (!resp.ok) throw new Error(`Backend returned ${resp.status}`);
+                const data = await resp.json();
+                const files = data.files || [];
+                if (files.length === 0) {
+                    showToast('No skeleton files generated', 'warning');
+                    return;
+                }
+                // Download each file individually
+                files.forEach(f => downloadFile(f.content, f.filename, 'text/x-python'));
+                showToast(`Downloaded ${files.length} pytest skeleton file${files.length > 1 ? 's' : ''}`, 'success');
+            } catch (err) {
+                showToast('Skeleton download failed: ' + err.message, 'error');
+            }
         }
 
         // Initialize
