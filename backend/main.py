@@ -140,10 +140,11 @@ def _process_single(text: str, format_hint: Optional[str] = None, use_llm: bool 
     """Full pipeline for one document/requirement text."""
     # Layer 1 — Ingestion
     ingest_result = _ingestion.ingest(text, format_hint=format_hint)
-    clean_text = ingest_result.chunks[0] if ingest_result.chunks else text
 
-    # Layer 2 — Normalization
-    norm_results = _normalization.normalize(clean_text)
+    # Layer 2 — Normalization (over every ingested chunk / sentence)
+    norm_results = []
+    for chunk in (ingest_result.chunks or [text]):
+        norm_results.extend(_normalization.normalize(chunk))
 
     all_tc_dicts: List[dict] = []
     all_normalized: List[dict] = []

@@ -70,13 +70,33 @@ def _detect_format(text: str) -> DocumentFormat:
 # ── Per-format parsers ────────────────────────────────────────────────────────
 
 def _parse_plain_text(text: str) -> List[ParsedRequirement]:
-    """Split on newlines first; fall back to sentence splitting."""
+    """
+    Split on newlines; for single-paragraph input, split on sentence boundaries.
+    A "sentence boundary" is end-of-sentence punctuation followed by whitespace
+    and an uppercase letter — safe against decimals and abbreviations.
+    """
+    _SENT_SPLIT = re.compile(r'(?<=[.!?])\s+(?=[A-Z])')
+
     lines = [l.strip() for l in text.splitlines() if len(l.strip()) > 10]
-    if not lines:
-        # Try sentence splitting
-        lines = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if len(s.strip()) > 10]
+
+    # Expand any long "line" that is actually multiple sentences
+    expanded: List[str] = []
+    for line in lines:
+        if _SENT_SPLIT.search(line):
+            parts = [p.strip() for p in _SENT_SPLIT.split(line) if p.strip()]
+            expanded.extend(parts)
+        else:
+            expanded.append(line)
+
+    # Fallback: whole text is one blob with no newlines
+    if not expanded:
+        expanded = [s.strip() for s in _SENT_SPLIT.split(text) if len(s.strip()) > 10]
+
+    if not expanded:
+        expanded = [text.strip()]
+
     results = []
-    for i, line in enumerate(lines, 1):
+    for i, line in enumerate(expanded, 1):
         results.append(ParsedRequirement(
             req_id=f"REQ-{i:03d}",
             text=line,
