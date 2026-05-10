@@ -668,10 +668,10 @@
                         source_line: idx + 1,
                         normalized: normalized,
                         classification: classification,
-                        priority_hint: determinePriority(normalized, classification),
+                        priority_hint: determinePriority(sentence, normalized, classification),
                         ambiguity: ambiguity,
                         provenance: {
-                            confidence: calculateConfidence(normalized, ambiguity),
+                            confidence: calculateConfidence(sentence, normalized, ambiguity),
                             method: 'rule-based'
                         }
                     };
@@ -863,7 +863,7 @@
             const vagueTerms = ['should', 'could', 'maybe', 'possibly', 'perhaps', 'usually', 'normally', 'typically', 'as appropriate', 'as needed', 'timely', 'promptly', 'quickly', 'reasonably'];
             
             vagueTerms.forEach(term => {
-                if (lowerText(text).includes(term)) {
+                if (text.toLowerCase().includes(term)) {
                     ambiguity.is_ambiguous = true;
                     ambiguity.issues.push(`Vague term: "${term}"`);
                     ambiguity.clarifying_questions.push(`Please clarify what "${term}" means in this context.`);
@@ -938,67 +938,70 @@
         }
 
         // Determine priority based on analysis
-        function determinePriority(normalized, classification) {
+        function determinePriority(text, normalized, classification) {
             let priority = 'Medium';
             const classifications = classification || [];
-            
+            const src = text || '';
+
             // Financial requirements are high priority
             if (classifications.includes('Financial') || classifications.includes('Payment')) {
                 return 'High';
             }
-            
+
             // Authentication is high priority
             if (classifications.includes('Authentication')) {
                 return 'High';
             }
-            
-            // Security-related
-            if (/encrypt|security|secure|protect|privacy/i.test(normalized.source_text || '')) {
+
+            // Security-related keywords in the original text
+            if (/encrypt|security|secure|protect|privacy/i.test(src)) {
                 return 'High';
             }
-            
-            // Time-critical requirements
-            if (/within \d+ second/i.test(normalized.source_text || '') || /performance|response time|latency/i.test(normalized.source_text || '')) {
+
+            // Time-critical / performance requirements
+            if (/within \d+ second/i.test(src) || /performance|response time|latency/i.test(src)) {
                 return 'High';
             }
-            
+
             // Low priority for reporting, notifications
             if (classifications.includes('Reporting')) {
                 return 'Low';
             }
-            
+
             return priority;
         }
 
         // Calculate confidence score
-        function calculateConfidence(normalized, ambiguity) {
+        function calculateConfidence(text, normalized, ambiguity) {
             let confidence = 1.0;
-            
+
             // Reduce confidence for ambiguous requirements
             if (ambiguity.is_ambiguous) {
                 confidence -= 0.2;
             }
-            
+
             // Reduce confidence for missing actor
             if (!normalized.actor || normalized.actor === 'N/A') {
                 confidence -= 0.15;
             }
-            
-            // Reduce confidence for missing conditions in complex requirements
+
+            // Reduce confidence for complex requirements without extracted conditions
             const conditions = normalized.conditions || [];
-            const sourceText = normalized.source_text || '';
-            if (conditions.length === 0 && sourceText.length > 80) {
+            if (conditions.length === 0 && (text || '').length > 80) {
                 confidence -= 0.1;
             }
-            
+
             return Math.max(0.5, confidence);
         }
 
         // Generate test cases from requirements
         function generateTestCases(requirements) {
             const testCases = [];
-            
+
             requirements.forEach(req => {
+                // action and expected_outcome live inside req.normalized, not on req directly
+                const action = req.normalized?.action || req.source_text || 'action';
+                const outcome = req.normalized?.expected_outcome || 'expected behavior';
                 const baseTc = {
                     mapped_requirement_id: req.requirement_id,
                     priority: req.priority_hint === 'High' ? 'P0' : req.priority_hint === 'Medium' ? 'P1' : 'P2'
@@ -1008,27 +1011,27 @@
                 testCases.push({
                     ...baseTc,
                     test_case_id: `TC-${req.requirement_id.split('-')[1]}-P001`,
-                    title: `Verify ${req.action || 'requirement'} with valid input`,
+                    title: `Verify ${action} with valid input`,
                     test_type: 'Positive',
                     preconditions: [],
                     steps: [
-                        { step_number: 1, action: `Initiate ${req.action || 'action'} with valid parameters` },
+                        { step_number: 1, action: `Initiate ${action} with valid parameters` },
                         { step_number: 2, action: `Verify system processes the request` },
-                        { step_number: 3, action: `Confirm ${req.expected_outcome || 'expected behavior'}` }
+                        { step_number: 3, action: `Confirm ${outcome}` }
                     ],
-                    expected_result: `${req.action || 'Action'} completed successfully with expected outcome`,
+                    expected_result: `${action} completed successfully with expected outcome`,
                     automation_feasibility: { feasible: true, notes: 'Standard flow' }
                 });
 
-                // Negative test cases
+                // Negative test case
                 testCases.push({
                     ...baseTc,
                     test_case_id: `TC-${req.requirement_id.split('-')[1]}-N001`,
-                    title: `Verify ${req.action || 'requirement'} handles invalid input gracefully`,
+                    title: `Verify ${action} handles invalid input gracefully`,
                     test_type: 'Negative',
                     preconditions: [],
                     steps: [
-                        { step_number: 1, action: `Attempt ${req.action || 'action'} with invalid/missing input` },
+                        { step_number: 1, action: `Attempt ${action} with invalid/missing input` },
                         { step_number: 2, action: `Verify system rejects invalid input` },
                         { step_number: 3, action: `Confirm appropriate error message is displayed` }
                     ],
@@ -1041,7 +1044,7 @@
                     testCases.push({
                         ...baseTc,
                         test_case_id: `TC-${req.requirement_id.split('-')[1]}-B001`,
-                        title: `Verify ${req.action || 'requirement'} at boundary values`,
+                        title: `Verify ${action} at boundary values`,
                         test_type: 'Boundary',
                         preconditions: [],
                         steps: [
@@ -1059,11 +1062,11 @@
                     testCases.push({
                         ...baseTc,
                         test_case_id: `TC-${req.requirement_id.split('-')[1]}-E001`,
-                        title: `Verify ${req.action || 'requirement'} under concurrent access`,
+                        title: `Verify ${action} under concurrent access`,
                         test_type: 'Edge',
                         preconditions: ['Multiple user sessions active'],
                         steps: [
-                            { step_number: 1, action: `Initiate ${req.action || 'action'} from multiple sessions simultaneously` },
+                            { step_number: 1, action: `Initiate ${action} from multiple sessions simultaneously` },
                             { step_number: 2, action: `Verify system handles concurrent requests` },
                             { step_number: 3, action: `Confirm data consistency across all sessions` }
                         ],
@@ -1072,16 +1075,16 @@
                     });
                 }
 
-                // Error handling test
+                // Error handling test (skip if requirement already focuses on error scenarios)
                 if (!/error|fail|exception/i.test(req.source_text)) {
                     testCases.push({
                         ...baseTc,
                         test_case_id: `TC-${req.requirement_id.split('-')[1]}-E002`,
-                        title: `Verify ${req.action || 'requirement'} handles system failures`,
+                        title: `Verify ${action} handles system failures`,
                         test_type: 'Negative',
                         preconditions: ['Simulate system failure conditions'],
                         steps: [
-                            { step_number: 1, action: `Trigger failure condition during ${req.action || 'action'}` },
+                            { step_number: 1, action: `Trigger failure condition during ${action}` },
                             { step_number: 2, action: `Verify system responds appropriately to failure` },
                             { step_number: 3, action: `Confirm system recovers or provides appropriate feedback` }
                         ],

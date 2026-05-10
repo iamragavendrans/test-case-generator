@@ -22,6 +22,7 @@ from services.ingestion import IngestionService
 from services.normalization import NormalizationService
 from services.classification import ClassificationService
 from services.generation import TestCaseGenerationService
+from services.coverage import CoverageService
 
 app = FastAPI(
     title="Test Case Generator API",
@@ -40,6 +41,7 @@ _ingestion = IngestionService()
 _normalization = NormalizationService()
 _classification = ClassificationService()
 _generation = TestCaseGenerationService()
+_coverage = CoverageService()
 
 
 # ── Request / Response models ────────────────────────────────────────────────
@@ -57,7 +59,9 @@ class BatchRequest(BaseModel):
 def _process_single(text: str) -> dict:
     """Full pipeline for one requirement text; returns structured output dict."""
     ingest_result = _ingestion.ingest(text)
-    norm_results = _normalization.normalize(text)
+    # Use the sanitized text so normalization works on cleaned input
+    clean_text = ingest_result.chunks[0] if ingest_result.chunks else text
+    norm_results = _normalization.normalize(clean_text)
 
     all_test_cases = []
     all_normalized = []
@@ -94,33 +98,48 @@ def _process_single(text: str) -> dict:
             'provenance': norm.provenance,
         })
 
+    tc_dicts = [
+        {
+            'test_case_id': _generation.generate_test_case_id(tc.requirement_id, tc.test_type[:3].upper()),
+            'title': tc.title,
+            'mapped_requirement_id': tc.requirement_id,
+            'test_type': tc.test_type,
+            'preconditions': tc.preconditions,
+            'steps': tc.steps,
+            'test_data': tc.test_data,
+            'expected_result': tc.expected_result,
+            'priority': _generation._map_priority(cls.priority_hint, tc.test_type[:3].upper()),
+            'automation_feasibility': {
+                'feasible': True,
+                'notes': 'Standard test case',
+                'estimated_effort': 'Medium',
+            },
+            'determinism_seed': _generation.config.determinism_seed,
+            'explainability': {
+                'generation_template_id': tc.template_id,
+                'rules_applied': tc.rules_applied,
+                'confidence': norm_item.confidence * 0.9,
+            },
+        }
+        for tc, cls, norm_item in all_test_cases
+    ]
+
+    # Behaviors (lightweight — one per requirement for coverage input)
+    behaviors = [
+        {'behavior_id': f"{r['requirement_id']}-B01", 'requirement_id': r['requirement_id']}
+        for r in all_normalized
+    ]
+    coverage_result = _coverage.calculate(tc_dicts, all_normalized, behaviors)
+
     return {
         'normalized_requirements': all_normalized,
-        'test_cases': [
-            {
-                'test_case_id': _generation.generate_test_case_id(tc.requirement_id, tc.test_type[:3].upper()),
-                'title': tc.title,
-                'mapped_requirement_id': tc.requirement_id,
-                'test_type': tc.test_type,
-                'preconditions': tc.preconditions,
-                'steps': tc.steps,
-                'test_data': tc.test_data,
-                'expected_result': tc.expected_result,
-                'priority': _generation._map_priority(cls.priority_hint, tc.test_type[:3].upper()),
-                'automation_feasibility': {
-                    'feasible': True,
-                    'notes': 'Standard test case',
-                    'estimated_effort': 'Medium',
-                },
-                'determinism_seed': _generation.config.determinism_seed,
-                'explainability': {
-                    'generation_template_id': tc.template_id,
-                    'rules_applied': tc.rules_applied,
-                    'confidence': norm_item.confidence * 0.9,
-                },
-            }
-            for tc, cls, norm_item in all_test_cases
-        ],
+        'test_cases': tc_dicts,
+        'coverage_summary': {
+            'overall_coverage': coverage_result.overall_coverage,
+            'requirement_coverage': coverage_result.requirement_coverage,
+            'gaps_detected': coverage_result.gaps_detected,
+            'dimension_coverage': coverage_result.dimension_coverage,
+        },
         'audit_log': {
             'generation_timestamp': datetime.now(timezone.utc).isoformat(),
             'generator_version': '1.0.0',
