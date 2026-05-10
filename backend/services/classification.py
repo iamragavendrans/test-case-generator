@@ -47,6 +47,15 @@ _KEYWORD_RULES: Dict[RequirementClass, List[str]] = {
     ],
 }
 
+def _keyword_match(kw: str, text_lower: str) -> bool:
+    """Match keyword against text using word boundaries for single words, exact match for phrases."""
+    if ' ' in kw or not kw.replace('-', '').isalpha():
+        # Multi-word phrase or contains special characters (e.g. 'aes-256', 'get /') → substring
+        return kw in text_lower
+    # Single alpha word → word boundary to avoid 'auth' matching 'author'
+    return bool(re.search(r'\b' + re.escape(kw) + r'\b', text_lower))
+
+
 _HIGH_PRIORITY_CLASSES = {
     RequirementClass.SECURITY,
     RequirementClass.PERFORMANCE,
@@ -69,7 +78,7 @@ class ClassificationService:
         scores: Dict[RequirementClass, float] = {}
 
         for cls, keywords in _KEYWORD_RULES.items():
-            hits = sum(1 for kw in keywords if kw.lower() in text_lower)
+            hits = sum(1 for kw in keywords if _keyword_match(kw.lower(), text_lower))
             scores[cls] = min(0.95, hits * 0.25)
 
         # FUNCTIONAL is the fallback: use a high base score only when no other class

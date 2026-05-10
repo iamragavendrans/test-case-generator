@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
@@ -90,10 +91,6 @@ class DimensionApplicabilityChecker:
             required.add(Dimension.FAILURE)
 
         return list(required)
-
-
-# Lazy import to avoid circular at module level
-import re
 
 
 class CoverageService:

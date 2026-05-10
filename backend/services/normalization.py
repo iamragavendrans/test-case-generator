@@ -1,4 +1,5 @@
 import re
+import uuid
 from dataclasses import dataclass, field
 from typing import List, Optional
 from datetime import datetime
@@ -82,7 +83,7 @@ class NormalizationService:
         if not actor:
             confidence = min(confidence, 0.8)
 
-        req_id = f"REQ-{datetime.now().strftime('%Y%m%d')}-{abs(hash(text)) % 10000:04d}"
+        req_id = f"REQ-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
 
         steps = [
             {'step': 'parse', 'desc': 'Parsed requirement text structure'},
