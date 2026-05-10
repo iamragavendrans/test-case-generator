@@ -144,24 +144,80 @@ class NormalizationService:
                 return actor[0].upper() + actor[1:]
         return ''
 
+    # Prepositions that introduce supplementary detail, not the core action.
+    # Trim the action clause at these so action stays concise.
+    _DETAIL_INTRO = re.compile(
+        r'\s+(?:including\b|such\s+as\b|e\.g\.|i\.e\.|exceeding\b)',
+        re.IGNORECASE,
+    )
+
     def _extract_action(self, text: str) -> str:
         match = re.search(
             r'\b(?:shall|must|should|will)\s+(.+?)(?:\s+when\b|\s+if\b|\s*$)',
             text,
             re.IGNORECASE,
         )
-        if match:
-            return match.group(1).strip()
-        return text.strip()
+        if not match:
+            return text.strip()
+
+        full_action = match.group(1).strip().rstrip('.')
+
+        # Trim at detail-introducing words so action = core verb phrase only.
+        # E.g. "display product details including price, stock quantity" → "display product details"
+        trim = self._DETAIL_INTRO.search(full_action)
+        if trim:
+            full_action = full_action[:trim.start()].strip()
+
+        return full_action
 
     def _extract_conditions(self, text: str) -> List[str]:
         conditions = []
-        when_match = re.search(r'\bwhen\b\s+(.+?)(?:\s+and\s+\w+\s+shall\b|$)', text, re.IGNORECASE)
+
+        # Conditional "when" clause — stop before compound "and X shall"
+        when_match = re.search(
+            r'\bwhen\b\s+(.+?)(?:\s+and\s+\w+\s+shall\b|$)', text, re.IGNORECASE
+        )
         if when_match:
             conditions.append(when_match.group(1).strip())
-        if_match = re.search(r'\bif\b\s+(.+?)(?:\s+then\b|\s+and\s+\w+\s+shall\b|$)', text, re.IGNORECASE)
+
+        # Conditional "if" clause — stop before the main clause that follows the comma
+        if_match = re.search(
+            r'\bif\b\s+(.+?)(?:,\s*(?:the\s+)?\w.*?\s+(?:shall|must|should|will)\b|\s+then\b|$)',
+            text,
+            re.IGNORECASE,
+        )
         if if_match:
-            conditions.append(if_match.group(1).strip())
+            clause = if_match.group(1).strip().rstrip(',')
+            if clause:
+                conditions.append(clause)
+
+        # "including X, Y, and Z" → individual field/attribute constraints
+        including_match = re.search(r'\bincluding\s+(.+?)(?:\.|$)', text, re.IGNORECASE)
+        if including_match:
+            items_str = including_match.group(1).strip().rstrip('.')
+            items = [
+                i.strip()
+                for i in re.split(r',\s*(?:and\s+)?|\s+and\s+', items_str)
+                if i.strip()
+            ]
+            conditions.extend(items)
+
+        # "within X [time unit]" → time-constraint condition
+        within_match = re.search(
+            r'\bwithin\s+([\w\s]+?(?:second|minute|hour|day|week|month)s?)\b',
+            text,
+            re.IGNORECASE,
+        )
+        if within_match:
+            conditions.append(f"within {within_match.group(1).strip()}")
+
+        # "exceeding X" → threshold condition
+        exceeding_match = re.search(
+            r'\bexceeding\s+(.+?)(?:\s+per\s+\w+|\.|$)', text, re.IGNORECASE
+        )
+        if exceeding_match:
+            conditions.append(f"threshold: {exceeding_match.group(1).strip()}")
+
         return conditions
 
     def _extract_outcome(self, text: str, action: str) -> str:
