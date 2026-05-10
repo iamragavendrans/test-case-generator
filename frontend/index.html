@@ -470,9 +470,12 @@
 
     <script>
         // Global State
+        const API_BASE = 'http://localhost:8000';
+
         let appState = {
             rawRequirements: '',
             analyzedRequirements: [],
+            backendTestCases: [],       // test cases returned by the backend API
             selectedRequirementIds: new Set(),
             generatedArtifacts: null,
             currentFilter: 'all',
@@ -598,10 +601,9 @@
             }, 3000);
         }
 
-        // API Configuration - Removed backend dependency
-        // Process Requirements entirely client-side
+        // ── Backend API integration ────────────────────────────────────────────
 
-        // Process Requirements - Client-side implementation
+        // Process Requirements - calls backend /generate; falls back to client-side
         async function processRequirements() {
             const text = requirementsInput.value.trim();
             if (!text) {
@@ -628,8 +630,9 @@
                 clearInterval(progressInterval);
                 progressBar.style.width = '100%';
 
-                // Store analyzed requirements
+                // Store analyzed requirements and backend-generated test cases
                 appState.analyzedRequirements = data.normalized_requirements || [];
+                appState.backendTestCases = data.test_cases || [];
                 appState.selectedRequirementIds = new Set(appState.analyzedRequirements.map(r => r.requirement_id));
                 
                 // Update button text to "Deselect All" since all are selected
@@ -650,18 +653,42 @@
             }
         }
 
-        // Client-side Requirements Analysis
+        // Priority normalizer: backend uses High/Medium/Low; frontend color map uses P0/P1/P2
+        const PRIORITY_MAP = { 'High': 'P0', 'Medium': 'P1', 'Low': 'P2' };
+        function normalizePriority(p) { return PRIORITY_MAP[p] || p; }
+
+        // Call backend /generate; on any network failure fall back to client-side analysis
         async function analyzeRequirements(text) {
-            return new Promise((resolve) => {
-                // Split text into individual requirements and track line numbers
+            try {
+                const resp = await fetch(`${API_BASE}/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requirement: text, use_llm: true })
+                });
+                if (!resp.ok) throw new Error(`Backend returned ${resp.status}`);
+                const data = await resp.json();
+
+                // Normalise priorities for frontend colour map
+                data.test_cases = (data.test_cases || []).map(tc => ({
+                    ...tc,
+                    priority: normalizePriority(tc.priority)
+                }));
+                data.normalized_requirements = (data.normalized_requirements || []).map(r => ({
+                    ...r,
+                    priority_hint: normalizePriority(r.priority_hint)
+                }));
+
+                data.test_plan = generateTestPlan(data.normalized_requirements, data.test_cases);
+                return data;
+            } catch (err) {
+                console.warn('Backend unavailable, using client-side analysis:', err.message);
+                // Client-side fallback
                 const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
-                
                 const normalizedRequirements = sentences.map((sentence, idx) => {
                     const reqId = `REQ-${String(idx + 1).padStart(3, '0')}`;
                     const normalized = normalizeRequirement(sentence);
                     const classification = classifyRequirement(sentence, normalized);
                     const ambiguity = detectAmbiguity(sentence, normalized);
-                    
                     return {
                         requirement_id: reqId,
                         source_text: sentence.trim(),
@@ -670,27 +697,13 @@
                         classification: classification,
                         priority_hint: determinePriority(sentence, normalized, classification),
                         ambiguity: ambiguity,
-                        provenance: {
-                            confidence: calculateConfidence(sentence, normalized, ambiguity),
-                            method: 'rule-based'
-                        }
+                        provenance: { confidence: calculateConfidence(sentence, normalized, ambiguity), method: 'rule-based' }
                     };
                 });
-
-                // Generate test cases for each requirement
                 const testCases = generateTestCases(normalizedRequirements);
-                
-                // Generate test plan
                 const testPlan = generateTestPlan(normalizedRequirements, testCases);
-
-                setTimeout(() => {
-                    resolve({
-                        normalized_requirements: normalizedRequirements,
-                        test_cases: testCases,
-                        test_plan: testPlan
-                    });
-                }, 500); // Small delay for UX
-            });
+                return { normalized_requirements: normalizedRequirements, test_cases: testCases, test_plan: testPlan };
+            }
         }
 
         // Normalize requirement into Actor-Action-Conditions-Outcome format
@@ -1340,9 +1353,13 @@
 
             // Filter artifacts to selected requirements
             const selectedReqs = appState.analyzedRequirements.filter(r => appState.selectedRequirementIds.has(r.requirement_id));
-            
-            // Generate artifacts object client-side
-            const testCases = generateTestCases(selectedReqs);
+
+            // Use backend-generated test cases when available; fall back to client-side
+            const selectedIds = appState.selectedRequirementIds;
+            let testCases = appState.backendTestCases.filter(tc => selectedIds.has(tc.mapped_requirement_id));
+            if (testCases.length === 0) {
+                testCases = generateTestCases(selectedReqs);
+            }
             const testPlan = generateTestPlan(selectedReqs, testCases);
             
             appState.generatedArtifacts = {
@@ -2114,9 +2131,9 @@
                 'API': 'bg-pink-500'
             };
             const priorityColors = {
-                'P0': 'bg-red-500',
-                'P1': 'bg-orange-500',
-                'P2': 'bg-yellow-500',
+                'P0': 'bg-red-500',    'High': 'bg-red-500',
+                'P1': 'bg-orange-500', 'Medium': 'bg-orange-500',
+                'P2': 'bg-yellow-500', 'Low': 'bg-yellow-500',
                 'P3': 'bg-green-500'
             };
 
@@ -2199,7 +2216,7 @@
             // Render charts
             const typeDist = metrics.type_distribution || {};
             const priorityDist = metrics.priority_distribution || {};
-            
+
             const typeColors = {
                 'Positive': 'bg-green-500',
                 'Negative': 'bg-red-500',
@@ -2209,9 +2226,9 @@
                 'API': 'bg-pink-500'
             };
             const priorityColors = {
-                'P0': 'bg-red-500',
-                'P1': 'bg-orange-500',
-                'P2': 'bg-yellow-500',
+                'P0': 'bg-red-500',    'High': 'bg-red-500',
+                'P1': 'bg-orange-500', 'Medium': 'bg-orange-500',
+                'P2': 'bg-yellow-500', 'Low': 'bg-yellow-500',
                 'P3': 'bg-green-500'
             };
 
