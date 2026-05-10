@@ -1272,7 +1272,7 @@
                                 <p class="text-sm text-gray-600 dark:text-gray-300 mb-3 group relative cursor-help" title="Hover to see source">
                                     ${req.source_text}
                                     <span class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10 w-96 p-3 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg">
-                                        <span class="font-medium block mb-1">Source (Line ${req.source_line}):</span>
+                                        <span class="font-medium block mb-1">Source${req.source_line ? ` (Line ${req.source_line})` : ''}:</span>
                                         ${req.source_text}
                                     </span>
                                 </p>

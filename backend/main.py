@@ -142,15 +142,17 @@ def _process_single(text: str, format_hint: Optional[str] = None, use_llm: bool 
     ingest_result = _ingestion.ingest(text, format_hint=format_hint)
 
     # Layer 2 — Normalization (over every ingested chunk / sentence)
-    norm_results = []
-    for chunk in (ingest_result.chunks or [text]):
-        norm_results.extend(_normalization.normalize(chunk))
+    # Track chunk index so each requirement knows its source line number.
+    norm_results = []  # list of (NormalizedRequirement, source_line: int)
+    for chunk_idx, chunk in enumerate(ingest_result.chunks or [text], 1):
+        for norm in _normalization.normalize(chunk):
+            norm_results.append((norm, chunk_idx))
 
     all_tc_dicts: List[dict] = []
     all_normalized: List[dict] = []
     llm_used = False
 
-    for norm in norm_results:
+    for norm, source_line in norm_results:
         norm_dict = norm.normalized.__dict__ if hasattr(norm.normalized, "__dict__") else norm.normalized
         req_id = norm.provenance.get("requirement_id", "REQ-UNKNOWN")
 
@@ -174,7 +176,7 @@ def _process_single(text: str, format_hint: Optional[str] = None, use_llm: bool 
                 llm_used = True
                 tc_dicts = [_llm_tc_to_dict(tc, req_id, classification, norm) for tc in llm_tcs]
                 all_tc_dicts.extend(tc_dicts)
-                all_normalized.append(_build_normalized_entry(norm, norm_dict, classification, req_id))
+                all_normalized.append(_build_normalized_entry(norm, norm_dict, classification, req_id, source_line))
                 continue  # skip rule-based for this requirement
 
         # Rule-based generation (fallback or LLM disabled)
@@ -188,7 +190,7 @@ def _process_single(text: str, format_hint: Optional[str] = None, use_llm: bool 
             } if norm.is_ambiguous else None,
         )
         all_tc_dicts.extend(_tc_to_dict(tc, classification, norm) for tc in generated)
-        all_normalized.append(_build_normalized_entry(norm, norm_dict, classification, req_id))
+        all_normalized.append(_build_normalized_entry(norm, norm_dict, classification, req_id, source_line))
 
     # Layer 5 — Coverage
     behaviors = [
@@ -217,10 +219,11 @@ def _process_single(text: str, format_hint: Optional[str] = None, use_llm: bool 
     }
 
 
-def _build_normalized_entry(norm, norm_dict, classification, req_id) -> dict:
+def _build_normalized_entry(norm, norm_dict, classification, req_id, source_line: int = 0) -> dict:
     return {
         "requirement_id": req_id,
         "source_text": norm.original_text,
+        "source_line": source_line,
         "normalized": norm_dict,
         "classification": [classification.primary_class.value] + [c.value for c in classification.secondary_classes],
         "priority_hint": classification.priority_hint,
